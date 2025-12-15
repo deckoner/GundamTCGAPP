@@ -1,0 +1,136 @@
+---
+import Layout from "../layouts/LayoutLogin.astro";
+const error = Astro.url.searchParams.get("error");
+---
+
+<Layout>
+  <section
+    class="relative flex min-h-screen flex-col items-center justify-center overflow-hidden"
+  >
+    <form
+      id="loginForm"
+      action="/api/login"
+      method="POST"
+      class="shadow-glass animate-fade-in w-full max-w-xs rounded-2xl border border-white/5 bg-white/5 p-6 backdrop-blur-sm sm:max-w-sm sm:p-8"
+      novalidate
+    >
+      <h1 class="mb-2 text-center text-2xl font-bold text-white sm:text-3xl">
+        Iniciar Sesión
+      </h1>
+
+      <div
+        class="mb-6 rounded-lg border border-blue-500/30 bg-blue-900/30 p-3 text-center text-xs text-blue-200"
+      >
+        <p>Para acceder a la cuenta demo las credenciales son</p>
+        <p class="mt-1">
+          <strong class="text-white">demo</strong> en user y <strong
+            class="text-white">demodemo</strong
+          > en contraseña
+        </p>
+      </div>
+
+      <div class="group mb-4">
+        <label
+          for="username"
+          class="text-text-secondary group-focus-within:text-accent mb-2 block text-sm font-medium transition-colors"
+        >
+          Usuario
+        </label>
+        <div class="relative">
+          <input
+            id="username"
+            name="username"
+            type="text"
+            placeholder="Tu nombre de usuario"
+            maxlength="100"
+            pattern="[A-Za-z0-9_]+"
+            title="Solo letras, números y guiones bajos (hasta 100 caracteres)"
+            class="placeholder-text-muted focus:border-accent focus:ring-accent block w-full rounded-lg border border-white/10 bg-white/5 p-2.5 text-sm text-white transition-all focus:ring-1 focus:outline-none"
+            required
+          />
+        </div>
+      </div>
+
+      <div class="group mb-6">
+        <label
+          for="password"
+          class="text-text-secondary group-focus-within:text-accent mb-2 block text-sm font-medium transition-colors"
+        >
+          Contraseña
+        </label>
+        <div class="relative">
+          <input
+            id="password"
+            name="password"
+            type="password"
+            placeholder="********"
+            maxlength="100"
+            title="Debe tener hasta 100 caracteres"
+            class="placeholder-text-muted focus:border-accent focus:ring-accent block w-full rounded-lg border border-white/10 bg-white/5 p-2.5 text-sm text-white transition-all focus:ring-1 focus:outline-none"
+            required
+          />
+        </div>
+      </div>
+
+      {
+        error && (
+          <div class="border-error/20 bg-error/10 text-error mb-4 animate-pulse rounded-lg border p-3 text-center text-sm">
+            {error}
+          </div>
+        )
+      }
+
+      <button
+        type="submit"
+        class="bg-accent hover:bg-accent-hover hover:shadow-glow focus:ring-accent/30 w-full rounded-lg px-5 py-2.5 text-center text-sm font-bold text-white transition-all focus:ring-4 focus:outline-none sm:text-base"
+      >
+        Entrar
+      </button>
+    </form>
+
+    <script>
+      // Validación extra en el cliente
+      const form = document.getElementById(
+        "loginForm",
+      ) as HTMLFormElement | null;
+
+      if (form) {
+        const usernameInput = form.querySelector<HTMLInputElement>("#username");
+        const passwordInput = form.querySelector<HTMLInputElement>("#password");
+
+        form.addEventListener("submit", (e) => {
+          if (!usernameInput || !passwordInput) return;
+
+          const username = usernameInput.value.trim();
+          const password = passwordInput.value;
+
+          // Validación de longitud
+          if (username.length > 100) {
+            e.preventDefault();
+            alert("El nombre de usuario no puede superar los 100 caracteres.");
+            return;
+          }
+
+          if (password.length > 100) {
+            e.preventDefault();
+            alert("La contraseña no puede superar los 100 caracteres.");
+            return;
+          }
+
+          // Validación de formato de usuario
+          if (!/^[A-Za-z0-9_]+$/.test(username)) {
+            e.preventDefault();
+            alert(
+              "El usuario solo puede contener letras, números y guiones bajos.",
+            );
+            return;
+          }
+
+          // Evitar envío repetido
+          const submitButton = form.querySelector<HTMLButtonElement>("button");
+          if (submitButton) submitButton.disabled = true;
+        });
+      }
+    </script>
+  </section>
+</Layout>

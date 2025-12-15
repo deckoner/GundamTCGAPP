@@ -1,0 +1,450 @@
+---
+import { getFiltrosData } from "../pages/api/filtros";
+
+const { showOwnedFilter = false, defaultAltArt = false } = Astro.props;
+
+const filtrosData = await getFiltrosData();
+const {
+  tipos,
+  animes,
+  gd,
+  links,
+  rarities,
+  costs,
+  levels,
+  colores,
+  tags,
+  traits,
+} = filtrosData;
+
+// Serializamos los datos para pasarlos al cliente (solo lo necesario para autocompletado)
+const autocompleteData = JSON.stringify({
+  colores,
+  tags,
+  traits,
+});
+---
+
+<section
+  class="bg-background-secondary border-border rounded-lg border p-4"
+  data-autocomplete={autocompleteData}
+  id="filtros-container"
+>
+  <h3 class="text-text-primary mb-4 text-lg font-bold">Filtros</h3>
+
+  <div class="mb-4">
+    <label for="filtro-nombre" class="sr-only">Nombre de la carta</label>
+    <input
+      id="filtro-nombre"
+      placeholder="Nombre de la carta..."
+      class="bg-background text-text-primary border-border focus:ring-accent w-full rounded border p-2 text-sm focus:ring-2 focus:outline-none"
+    />
+  </div>
+
+  <div
+    class="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
+  >
+    <select
+      id="filtro-tipo"
+      class="bg-background text-text-primary border-border rounded border p-2 text-sm"
+    >
+      <option value="">Todos los tipos</option>
+      {tipos.map((t) => <option value={t.id}>{t.type}</option>)}
+    </select>
+
+    <select
+      id="filtro-anime"
+      class="bg-background text-text-primary border-border rounded border p-2 text-sm"
+    >
+      <option value="">Todos los animes</option>
+      {animes.map((a) => <option value={a.id}>{a.anime}</option>)}
+    </select>
+
+    <select
+      id="filtro-gd"
+      class="bg-background text-text-primary border-border rounded border p-2 text-sm"
+    >
+      <option value="">Todos los GD</option>
+      {gd.map((g) => <option value={g.id}>{g.belongs_gd}</option>)}
+    </select>
+
+    <select
+      id="filtro-link"
+      class="bg-background text-text-primary border-border rounded border p-2 text-sm"
+    >
+      <option value="">Todos los links</option>
+      {links.map((l) => <option value={l.id}>{l.link}</option>)}
+    </select>
+
+    <select
+      id="filtro-rarity"
+      class="bg-background text-text-primary border-border rounded border p-2 text-sm"
+    >
+      <option value="">Todas las rarezas</option>
+      {rarities.map((r) => <option value={r}>{r}</option>)}
+    </select>
+
+    <select
+      id="filtro-cost"
+      class="bg-background text-text-primary border-border rounded border p-2 text-sm"
+    >
+      <option value="">Todos los costes</option>
+      {costs.map((c) => <option value={c}>{c}</option>)}
+    </select>
+
+    <select
+      id="filtro-level"
+      class="bg-background text-text-primary border-border rounded border p-2 text-sm"
+    >
+      <option value="">Todos los niveles</option>
+      {levels.map((l) => <option value={l}>{l}</option>)}
+    </select>
+
+    <div class="flex h-full items-center gap-4">
+      <label class="relative inline-flex cursor-pointer items-center">
+        <input
+          type="checkbox"
+          id="filtro-alt-art"
+          class="peer sr-only"
+          checked={defaultAltArt}
+        />
+        <div
+          class="bg-background border-border peer-checked:bg-accent h-6 w-6 rounded-md border"
+          aria-hidden="true"
+        >
+        </div>
+        <span class="text-text-primary ml-2 text-sm"
+          >Mostrar arte alternativo</span
+        >
+      </label>
+
+      {
+        showOwnedFilter && (
+          <label class="relative inline-flex cursor-pointer items-center">
+            <input
+              type="checkbox"
+              id="filtro-owned-only"
+              class="peer sr-only"
+            />
+            <div
+              class="bg-background border-border peer-checked:bg-accent h-6 w-6 rounded-md border"
+              aria-hidden="true"
+            />
+            <span class="text-text-primary ml-2 text-sm">
+              Solo cartas obtenidas
+            </span>
+          </label>
+        )
+      }
+    </div>
+  </div>
+
+  <div class="flex flex-col gap-3 md:flex-row">
+    <div class="relative flex-1">
+      <label for="filtro-colores" class="sr-only">Colores</label>
+      <input
+        id="filtro-colores"
+        placeholder="Colores..."
+        class="bg-background text-text-primary border-border focus:ring-accent w-full rounded border p-2 text-sm focus:ring-2 focus:outline-none"
+      />
+      <div
+        id="lista-colores"
+        class="bg-background-secondary border-border absolute z-50 mt-1 hidden max-h-40 w-full overflow-auto border"
+      >
+      </div>
+      <div id="colores-seleccionados" class="mt-2 flex flex-wrap gap-2"></div>
+    </div>
+
+    <div class="relative flex-1">
+      <label for="filtro-tags" class="sr-only">Etiquetas</label>
+      <input
+        id="filtro-tags"
+        placeholder="Etiquetas..."
+        class="bg-background text-text-primary border-border focus:ring-accent w-full rounded border p-2 text-sm focus:ring-2 focus:outline-none"
+      />
+      <div
+        id="lista-tags"
+        class="bg-background-secondary border-border absolute z-50 mt-1 hidden max-h-40 w-full overflow-auto border"
+      >
+      </div>
+      <div id="tags-seleccionados" class="mt-2 flex flex-wrap gap-2"></div>
+    </div>
+
+    <div class="relative flex-1">
+      <label for="filtro-traits" class="sr-only">Traits</label>
+      <input
+        id="filtro-traits"
+        placeholder="Traits..."
+        class="bg-background text-text-primary border-border focus:ring-accent w-full rounded border p-2 text-sm focus:ring-2 focus:outline-none"
+      />
+      <div
+        id="lista-traits"
+        class="bg-background-secondary border-border absolute z-50 mt-1 hidden max-h-40 w-full overflow-auto border"
+      >
+      </div>
+      <div id="traits-seleccionados" class="mt-2 flex flex-wrap gap-2"></div>
+    </div>
+  </div>
+</section>
+
+<script>
+  import { debounce, crearElemento } from "../utils/dom";
+
+  // Interfaces para los datos de autocompletado
+  interface AutocompleteItem {
+    id: number;
+    name: string;
+    color?: string;
+    tag?: string;
+    trait?: string;
+  }
+
+  let selects: Record<string, HTMLSelectElement> = {};
+  let inputs: Record<string, HTMLInputElement> = {};
+  let listas: Record<string, HTMLElement> = {};
+  let contenedores: Record<string, HTMLElement> = {};
+  let seleccionados = {
+    colores: [] as number[],
+    tags: [] as number[],
+    traits: [] as number[],
+  };
+
+  const initDOM = () => {
+    selects = {
+      tipo: document.getElementById("filtro-tipo") as HTMLSelectElement,
+      anime: document.getElementById("filtro-anime") as HTMLSelectElement,
+      gd: document.getElementById("filtro-gd") as HTMLSelectElement,
+      link: document.getElementById("filtro-link") as HTMLSelectElement,
+      rarity: document.getElementById("filtro-rarity") as HTMLSelectElement,
+      cost: document.getElementById("filtro-cost") as HTMLSelectElement,
+      level: document.getElementById("filtro-level") as HTMLSelectElement,
+    };
+
+    inputs = {
+      nombre: document.getElementById("filtro-nombre") as HTMLInputElement,
+      colores: document.getElementById("filtro-colores") as HTMLInputElement,
+      tags: document.getElementById("filtro-tags") as HTMLInputElement,
+      traits: document.getElementById("filtro-traits") as HTMLInputElement,
+      altArt: document.getElementById("filtro-alt-art") as HTMLInputElement,
+      ownedOnly: document.getElementById(
+        "filtro-owned-only",
+      ) as HTMLInputElement,
+    };
+
+    listas = {
+      colores: document.getElementById("lista-colores") as HTMLElement,
+      tags: document.getElementById("lista-tags") as HTMLElement,
+      traits: document.getElementById("lista-traits") as HTMLElement,
+    };
+
+    contenedores = {
+      colores: document.getElementById("colores-seleccionados") as HTMLElement,
+      tags: document.getElementById("tags-seleccionados") as HTMLElement,
+      traits: document.getElementById("traits-seleccionados") as HTMLElement,
+    };
+  };
+
+  const crearChip = (text: string, onClick: () => void) => {
+    return crearElemento(
+      "span",
+      {
+        backgroundColor: "var(--color-accent)",
+        border: "1px solid var(--color-accent)",
+        color: "#000",
+        padding: "6px 8px",
+        borderRadius: "999px",
+        fontSize: "0.75rem",
+        cursor: "pointer",
+      },
+      text,
+      onClick,
+    );
+  };
+
+  const emitirFiltros = debounce(() => {
+    if (!inputs.nombre) return;
+    const filtrosSeleccionados = {
+      nombre: inputs.nombre.value.trim(),
+      tipo: selects.tipo?.value || "",
+      anime: selects.anime?.value || "",
+      gd: selects.gd?.value || "",
+      link: selects.link?.value || "",
+      rarity: selects.rarity?.value || "",
+      cost: selects.cost?.value || "",
+      level: selects.level?.value || "",
+      colores: [...seleccionados.colores],
+      tags: [...seleccionados.tags],
+      traits: [...seleccionados.traits],
+      altArt: inputs.altArt?.checked || false,
+      ownedOnly: inputs.ownedOnly ? inputs.ownedOnly.checked : false,
+    };
+    window.dispatchEvent(
+      new CustomEvent("aplicar-filtros", { detail: filtrosSeleccionados }),
+    );
+  }, 220);
+
+  const aplicarFiltros = () => emitirFiltros();
+
+  const setupAutocomplete = (
+    inputEl: HTMLInputElement,
+    listEl: HTMLElement,
+    containerEl: HTMLElement,
+    items: AutocompleteItem[],
+    selectedArray: number[],
+  ) => {
+    if (!inputEl || !listEl || !containerEl) return;
+
+    const renderList = (filter = "") => {
+      listEl.innerHTML = "";
+      const filtered = filter
+        ? items.filter((i) =>
+            i.name.toLowerCase().includes(filter.toLowerCase()),
+          )
+        : items;
+
+      filtered.forEach((item) => {
+        const div = crearElemento(
+          "div",
+          {
+            padding: "8px",
+            cursor: "pointer",
+            color: "var(--color-text-primary)",
+            backgroundColor: "var(--color-background-secondary)",
+          },
+          item.name,
+        );
+
+        div.addEventListener(
+          "mouseenter",
+          () => (div.style.backgroundColor = "var(--color-accent-hover)"),
+        );
+        div.addEventListener(
+          "mouseleave",
+          () =>
+            (div.style.backgroundColor = "var(--color-background-secondary)"),
+        );
+
+        div.addEventListener("click", () => {
+          const idx = selectedArray.indexOf(item.id);
+          if (idx !== -1) {
+            // Ya seleccionado a remover
+            selectedArray.splice(idx, 1);
+            Array.from(containerEl.children)
+              .find((c) => c.textContent === item.name)
+              ?.remove();
+          } else {
+            // Nuevo a agregar
+            selectedArray.push(item.id);
+            containerEl.appendChild(
+              crearChip(item.name, () => {
+                const i = selectedArray.indexOf(item.id);
+                if (i !== -1) {
+                  selectedArray.splice(i, 1);
+                  containerEl.querySelectorAll("span").forEach((chip) => {
+                    if (chip.textContent === item.name) chip.remove();
+                  });
+                  aplicarFiltros();
+                }
+              }),
+            );
+          }
+          inputEl.value = "";
+          listEl.style.display = "none";
+          aplicarFiltros();
+        });
+
+        listEl.appendChild(div);
+      });
+
+      listEl.style.display = filtered.length ? "block" : "none";
+    };
+
+    inputEl.addEventListener("input", () => renderList(inputEl.value));
+    inputEl.addEventListener("focus", () => renderList(inputEl.value));
+    inputEl.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        (listEl.firstChild as HTMLElement)?.click();
+      }
+    });
+
+    document.addEventListener("click", (ev) => {
+      if (!listEl.contains(ev.target as Node) && ev.target !== inputEl)
+        listEl.style.display = "none";
+    });
+  };
+
+  const initFiltros = () => {
+    try {
+      initDOM();
+
+      if (!inputs.nombre) return;
+
+      // Recuperar datos del atributo data-autocomplete
+      const container = document.getElementById("filtros-container");
+      if (!container || !container.dataset.autocomplete) return;
+
+      const data = JSON.parse(container.dataset.autocomplete);
+
+      // Normalizar datos para el autocompletado
+      const colores = data.colores.map((c: any) => ({
+        id: c.id,
+        name: c.color,
+      }));
+      const tags = data.tags.map((t: any) => ({ id: t.id, name: t.tag }));
+      const traits = data.traits.map((t: any) => ({
+        id: t.id,
+        name: t.trait,
+      }));
+
+      setupAutocomplete(
+        inputs.colores,
+        listas.colores,
+        contenedores.colores,
+        colores,
+        seleccionados.colores,
+      );
+      setupAutocomplete(
+        inputs.tags,
+        listas.tags,
+        contenedores.tags,
+        tags,
+        seleccionados.tags,
+      );
+      setupAutocomplete(
+        inputs.traits,
+        listas.traits,
+        contenedores.traits,
+        traits,
+        seleccionados.traits,
+      );
+
+      // Eventos
+      [
+        ...Object.values(selects),
+        inputs.nombre,
+        inputs.altArt,
+        inputs.ownedOnly,
+      ]
+        .filter((el) => el)
+        .forEach((el) => {
+          const event =
+            el.tagName === "INPUT" &&
+            (el as HTMLInputElement).type === "checkbox"
+              ? "change"
+              : "input";
+          el.addEventListener(event, aplicarFiltros);
+        });
+    } catch (err) {
+      console.error("Error initFiltros", err);
+    }
+  };
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initFiltros);
+  } else {
+    initFiltros();
+  }
+
+  document.addEventListener("astro:page-load", initFiltros);
+</script>

@@ -1,0 +1,181 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model animes {
+  id    Int     @id @default(autoincrement())
+  anime String? @unique(map: "anime") @db.VarChar(255)
+
+  cards cards[]
+}
+
+model belongs_gd {
+  id         Int     @id @default(autoincrement())
+  belongs_gd String? @unique(map: "belongs_gd") @db.VarChar(255)
+
+  cards cards[]
+}
+
+model card_colors {
+  card_id  Int
+  color_id Int
+
+  cards cards @relation(fields: [card_id], references: [id])
+  color colors @relation(fields: [color_id], references: [id])
+
+  @@id([card_id, color_id])
+}
+
+model card_tags {
+  card_id Int
+  tag_id  Int
+
+  cards cards @relation(fields: [card_id], references: [id])
+  tag   tags  @relation(fields: [tag_id], references: [id])
+
+  @@id([card_id, tag_id])
+}
+
+model card_types {
+  card_id Int
+  type_id Int
+
+  cards cards @relation(fields: [card_id], references: [id])
+  type  types @relation(fields: [type_id], references: [id])
+
+  @@id([card_id, type_id])
+}
+
+model card_traits {
+  card_id  Int
+  trait_id Int
+
+  cards  cards  @relation(fields: [card_id], references: [id])
+  trait  traits @relation(fields: [trait_id], references: [id])
+
+  @@id([card_id, trait_id])
+}
+
+model cards {
+  id               Int                @id @default(autoincrement())
+  gd               String?            @db.VarChar(50)
+  name             String?            @db.Text
+  rarity           String?            @db.VarChar(50)
+  level            Int?
+  cost             Int?
+  text_card        String?            @db.Text
+  zone_id          Int?
+  link_id          Int?
+  anime_id         Int?
+  belongs_gd_id    Int?
+  ap               String?            @db.Text
+  hp               String?            @db.Text
+  img              String?            @db.Text
+  alt_art          Boolean?
+  color_ids        String?            @db.Text
+  type_ids         String?            @db.Text
+  tag_ids          String?            @db.Text
+  trait_ids        String?            @db.Text
+
+  deck_cards       deck_cards[]
+  user_collections user_collections[]
+
+  // Relaciones many-to-many
+  card_colors card_colors[]
+  card_types  card_types[]
+  card_tags   card_tags[]
+  card_traits card_traits[]
+
+  // Relaciones one-to-one con tablas lookup
+  anime      animes?      @relation(fields: [anime_id], references: [id])
+  belongs_gd belongs_gd?  @relation(fields: [belongs_gd_id], references: [id])
+  zone       zones?        @relation(fields: [zone_id], references: [id])
+  link       links?        @relation(fields: [link_id], references: [id])
+}
+
+model colors {
+  id    Int     @id @default(autoincrement())
+  color String? @unique(map: "color") @db.VarChar(255)
+
+  card_colors card_colors[]
+}
+
+model deck_cards {
+  deck_id  Int
+  card_id  Int
+  quantity Int?  @default(1)
+  decks    decks @relation(fields: [deck_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "deck_cards_ibfk_1")
+  cards    cards @relation(fields: [card_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "deck_cards_ibfk_2")
+
+  @@id([deck_id, card_id])
+  @@index([card_id], map: "card_id")
+}
+
+model decks {
+  id         Int          @id @default(autoincrement())
+  name       String       @db.VarChar(255)
+  user_id    Int?
+  deck_cards deck_cards[]
+  users      users?       @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "decks_ibfk_1")
+
+  @@index([user_id], map: "user_id")
+}
+
+model links {
+  id   Int     @id @default(autoincrement())
+  link String? @unique(map: "link") @db.VarChar(255)
+
+  cards cards[]
+}
+
+model tags {
+  id  Int     @id @default(autoincrement())
+  tag String? @unique(map: "tag") @db.VarChar(255)
+
+  card_tags card_tags[]
+}
+
+model types {
+  id   Int     @id @default(autoincrement())
+  type String? @unique(map: "type") @db.VarChar(255)
+
+  card_types card_types[]
+}
+
+model traits {
+  id    Int     @id @default(autoincrement())
+  trait String? @unique(map: "trait") @db.VarChar(255)
+
+  card_traits card_traits[]
+}
+
+model user_collections {
+  user_id  Int
+  card_id  Int
+  quantity Int?  @default(1)
+  users    users @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "user_collections_ibfk_1")
+  cards    cards @relation(fields: [card_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "user_collections_ibfk_2")
+
+  @@id([user_id, card_id])
+  @@index([card_id], map: "card_id")
+}
+
+model users {
+  id               Int                @id @default(autoincrement())
+  username         String             @unique(map: "username") @db.VarChar(100)
+  password_hash    String?            @db.Text
+  decks            decks[]
+  user_collections user_collections[]
+}
+
+model zones {
+  id   Int     @id @default(autoincrement())
+  zone String? @unique(map: "zone") @db.VarChar(255)
+
+  cards cards[]
+}

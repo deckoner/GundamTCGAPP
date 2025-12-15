@@ -1,0 +1,25 @@
+---
+import MainLayout from "../layouts/MainLayout.astro";
+---
+
+<MainLayout title="Página no encontrada">
+  <section
+    class="flex flex-col items-center justify-center space-y-8 px-6 py-24 text-center"
+  >
+    <h1
+      class="text-accent text-7xl font-extrabold select-none sm:text-8xl md:text-9xl"
+    >
+      404
+    </h1>
+
+    <p
+      class="text-text-secondary max-w-xl text-base leading-relaxed sm:text-lg md:text-xl"
+    >
+      La página que buscas la destrozó un Zaku.<br />
+      Pero no te preocupes, siempre puedes volver <a
+        class="text-accent"
+        href="/">al hangar</a
+      >.
+    </p>
+  </section>
+</MainLayout>

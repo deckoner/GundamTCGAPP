@@ -1,0 +1,378 @@
+---
+import MainLayout from "../../layouts/MainLayout.astro";
+import Icon from "../../components/Icon.astro";
+import prisma from "../../utils/prismaClient";
+
+const user = Astro.locals.user;
+const isDemo = user?.username === "demo";
+
+if (!user) {
+  return Astro.redirect("/login");
+}
+
+// Obtener estadísticas
+const deckCount = await prisma.decks.count({
+  where: { user_id: user.id },
+});
+
+const collectionStats = await prisma.user_collections.aggregate({
+  where: { user_id: user.id },
+  _sum: {
+    quantity: true,
+  },
+});
+
+const altArtStats = await prisma.user_collections.findMany({
+  where: {
+    user_id: user.id,
+    cards: {
+      alt_art: true,
+    },
+  },
+  select: {
+    quantity: true,
+  },
+});
+
+const decksStats = await prisma.decks.findMany({
+  where: { user_id: user.id },
+  include: {
+    deck_cards: {
+      select: {
+        quantity: true,
+      },
+    },
+  },
+});
+
+const totalCards = collectionStats._sum.quantity || 0;
+const totalAltArt = altArtStats.reduce(
+  (acc, curr) => acc + (curr.quantity || 0),
+  0,
+);
+const totalCardsInDecks = decksStats.reduce((acc, deck) => {
+  return (
+    acc + deck.deck_cards.reduce((dAcc, card) => dAcc + (card.quantity || 0), 0)
+  );
+}, 0);
+---
+
+<MainLayout title="Mi Cuenta - GundamTCG" maxWidth="max-w-7xl">
+  <section class="container mx-auto max-w-7xl px-4 py-8">
+    <h1 class="mb-8 text-3xl font-black text-white">Mi Cuenta</h1>
+
+    <div class="grid gap-8 md:grid-cols-2">
+      <!-- Columna Izquierda: Perfil -->
+      <div class="space-y-8">
+        <!-- Tarjeta de Perfil -->
+        <section
+          class="rounded-xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm"
+        >
+          <h2
+            class="text-accent mb-4 flex items-center gap-2 text-xl font-bold"
+          >
+            <Icon name="user" class="h-6 w-6" />
+            Perfil de Usuario
+          </h2>
+
+          <div class="space-y-6">
+            {
+              isDemo && (
+                <div class="border-warning/20 bg-warning/10 text-warning mb-6 rounded-lg border p-4 text-center">
+                  <p class="font-bold">Modo Demo Activo</p>
+                  <p class="text-sm">
+                    No puedes modificar los datos de esta cuenta.
+                  </p>
+                </div>
+              )
+            }
+            <!-- Cambio de Nombre -->
+            <form id="form-username" class="space-y-4">
+              <div>
+                <label
+                  class="text-text-secondary mb-1 block text-sm font-medium"
+                >
+                  Nombre de usuario actual
+                </label>
+                <input
+                  type="text"
+                  value={user.username}
+                  disabled
+                  class="w-full rounded-lg border border-white/10 bg-black/20 px-4 py-2 text-white opacity-50"
+                />
+              </div>
+              <div>
+                <label
+                  for="new-username"
+                  class="text-text-secondary mb-1 block text-sm font-medium"
+                >
+                  Nuevo nombre de usuario
+                </label>
+                <input
+                  type="text"
+                  id="new-username"
+                  name="newUsername"
+                  class="focus:border-accent w-full rounded-lg border border-white/10 bg-black/20 px-4 py-2 text-white focus:outline-none"
+                  placeholder="Escribe tu nuevo nombre"
+                  disabled={isDemo}
+                />
+              </div>
+              <div>
+                <label
+                  for="current-pass-user"
+                  class="text-text-secondary mb-1 block text-sm font-medium"
+                >
+                  Contraseña actual (Requerido)
+                </label>
+                <input
+                  type="password"
+                  id="current-pass-user"
+                  name="currentPassword"
+                  required
+                  class="focus:border-accent w-full rounded-lg border border-white/10 bg-black/20 px-4 py-2 text-white focus:outline-none disabled:opacity-50"
+                  disabled={isDemo}
+                />
+              </div>
+              <button
+                type="submit"
+                class="bg-accent hover:bg-accent-hover w-full rounded-lg px-4 py-2 font-bold text-white transition-colors"
+                disabled={isDemo}
+              >
+                Actualizar Nombre
+              </button>
+            </form>
+
+            <div class="h-px bg-white/10"></div>
+
+            <!-- Cambio de Contraseña -->
+            <form id="form-password" class="space-y-4">
+              <h3 class="text-lg font-bold text-white">Cambiar Contraseña</h3>
+              <div>
+                <label
+                  for="new-password"
+                  class="text-text-secondary mb-1 block text-sm font-medium"
+                >
+                  Nueva contraseña
+                </label>
+                <input
+                  type="password"
+                  id="new-password"
+                  name="newPassword"
+                  required
+                  minlength="6"
+                  class="focus:border-accent w-full rounded-lg border border-white/10 bg-black/20 px-4 py-2 text-white focus:outline-none disabled:opacity-50"
+                  disabled={isDemo}
+                />
+              </div>
+              <div>
+                <label
+                  for="confirm-password"
+                  class="text-text-secondary mb-1 block text-sm font-medium"
+                >
+                  Confirmar nueva contraseña
+                </label>
+                <input
+                  type="password"
+                  id="confirm-password"
+                  required
+                  minlength="6"
+                  class="focus:border-accent w-full rounded-lg border border-white/10 bg-black/20 px-4 py-2 text-white focus:outline-none disabled:opacity-50"
+                  disabled={isDemo}
+                />
+              </div>
+              <div>
+                <label
+                  for="current-pass-pass"
+                  class="text-text-secondary mb-1 block text-sm font-medium"
+                >
+                  Contraseña actual (Requerido)
+                </label>
+                <input
+                  type="password"
+                  id="current-pass-pass"
+                  name="currentPassword"
+                  required
+                  class="focus:border-accent w-full rounded-lg border border-white/10 bg-black/20 px-4 py-2 text-white focus:outline-none disabled:opacity-50"
+                  disabled={isDemo}
+                />
+              </div>
+              <button
+                type="submit"
+                class="w-full rounded-lg bg-white/10 px-4 py-2 font-bold text-white transition-colors hover:bg-white/20"
+                disabled={isDemo}
+              >
+                Cambiar Contraseña
+              </button>
+            </form>
+          </div>
+        </section>
+      </div>
+
+      <!-- Columna Derecha: Estadísticas y Acciones -->
+      <div class="space-y-8">
+        <!-- Estadísticas -->
+        <section
+          class="rounded-xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm"
+        >
+          <h2
+            class="text-accent mb-6 flex items-center gap-2 text-xl font-bold"
+          >
+            <Icon name="chart-bar" class="h-6 w-6" />
+            Estadísticas
+          </h2>
+
+          <div class="grid grid-cols-2 gap-4">
+            <div class="rounded-lg bg-black/20 p-4 text-center">
+              <div class="text-3xl font-black text-white">
+                {deckCount}
+              </div>
+              <div
+                class="text-text-secondary text-xs font-bold tracking-wider uppercase"
+              >
+                Decks Creados
+              </div>
+            </div>
+            <div class="rounded-lg bg-black/20 p-4 text-center">
+              <div class="text-3xl font-black text-white">
+                {totalCards}
+              </div>
+              <div
+                class="text-text-secondary text-xs font-bold tracking-wider uppercase"
+              >
+                Total Colección
+              </div>
+            </div>
+            <div class="rounded-lg bg-black/20 p-4 text-center">
+              <div class="text-3xl font-black text-white">
+                {totalCardsInDecks}
+              </div>
+              <div
+                class="text-text-secondary text-xs font-bold tracking-wider uppercase"
+              >
+                Cartas en Decks
+              </div>
+            </div>
+            <div class="rounded-lg bg-black/20 p-4 text-center">
+              <div class="text-3xl font-black text-white">
+                {totalAltArt}
+              </div>
+              <div
+                class="text-text-secondary text-xs font-bold tracking-wider uppercase"
+              >
+                Arte Alternativo
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Acciones -->
+        <section
+          class="rounded-xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm"
+        >
+          <h2
+            class="text-accent mb-4 flex items-center gap-2 text-xl font-bold"
+          >
+            <Icon name="upload" class="h-6 w-6" />
+            Exportar Datos
+          </h2>
+          <p class="text-text-secondary mb-4 text-sm">
+            Descarga un archivo CSV con toda tu colección de cartas para usar en
+            Excel u otras herramientas.
+          </p>
+          <a
+            href="/api/collection/export"
+            class="flex w-full items-center justify-center gap-2 rounded-lg border border-green-600/30 bg-green-600/20 px-4 py-3 font-bold text-green-400 transition-colors hover:bg-green-600/30"
+          >
+            <Icon name="download" class="h-5 w-5" />
+            Descargar Colección CSV
+          </a>
+        </section>
+
+        <!-- Cerrar Sesión -->
+        <section
+          class="rounded-xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm"
+        >
+          <h2
+            class="mb-4 flex items-center gap-2 text-xl font-bold text-red-500"
+          >
+            <Icon name="logout" class="h-6 w-6" />
+            Zona de Peligro
+          </h2>
+          <form action="/api/logout" method="POST">
+            <button
+              type="submit"
+              class="flex w-full items-center justify-center gap-2 rounded-lg border border-red-600/30 bg-red-600/20 px-4 py-3 font-bold text-red-400 transition-colors hover:bg-red-600/30"
+            >
+              Cerrar Sesión
+            </button>
+          </form>
+        </section>
+
+        <script>
+          // Importar utilidad de toast
+          import { showToast } from "../../utils/toast";
+
+          async function handleUpdate(e: SubmitEvent, formId: string) {
+            e.preventDefault();
+            const form = e.target as HTMLFormElement;
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData.entries());
+
+            // Validar confirmación de contraseña
+            if (formId === "form-password") {
+              const newPass = data.newPassword as string;
+              const confirmPass = (
+                document.getElementById("confirm-password") as HTMLInputElement
+              ).value;
+              if (newPass !== confirmPass) {
+                showToast("Las contraseñas no coinciden", "error");
+                return;
+              }
+            }
+
+            try {
+              const res = await fetch("/api/account/update-profile", {
+                method: "PUT",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify(data),
+              });
+
+              const result = await res.json();
+
+              if (!res.ok) {
+                throw new Error(result.error || "Error al actualizar");
+              }
+
+              showToast(result.message, "success");
+              form.reset();
+
+              // Redirigir al login después de un breve retraso
+              setTimeout(() => {
+                window.location.href =
+                  "/login?message=" +
+                  encodeURIComponent(
+                    "Sesión cerrada. Por favor ingresa nuevamente.",
+                  );
+              }, 2000);
+            } catch (err: any) {
+              showToast(err.message, "error");
+            }
+          }
+
+          document
+            .getElementById("form-username")
+            ?.addEventListener("submit", (e) =>
+              handleUpdate(e, "form-username"),
+            );
+          document
+            .getElementById("form-password")
+            ?.addEventListener("submit", (e) =>
+              handleUpdate(e, "form-password"),
+            );
+        </script>
+      </div>
+    </div>
+  </section>
+</MainLayout>

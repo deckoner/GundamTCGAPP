@@ -1,0 +1,493 @@
+---
+import MainLayout from "../../layouts/MainLayout.astro";
+import Filtros from "../../components/Filtros.astro";
+import Icon from "../../components/Icon.astro";
+import { fetchCartas } from "../../utils/cartasLogic";
+import { PrismaClient } from "@prisma/client";
+
+const user = Astro.locals.user;
+
+if (!user) {
+  return Astro.redirect("/login");
+}
+
+const prisma = new PrismaClient();
+
+// Fetch datos iniciales de la tarjeta (página 1)
+const initialData = await fetchCartas({ page: 1, altArt: true });
+const { cartas, hasMore } = initialData;
+
+// Fetch map de colección del usuario (card_id a cantidad)
+const userCollection = await prisma.user_collections.findMany({
+  where: { user_id: user.id },
+  select: { card_id: true, quantity: true },
+});
+
+const collectionMap: Record<number, number> = {};
+userCollection.forEach((item) => {
+  collectionMap[item.card_id] = item.quantity || 0;
+});
+---
+
+<MainLayout title="Mi Colección - GundamTCG">
+  <section class="container mx-auto px-4 py-8">
+    <header
+      class="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between"
+    >
+      <div>
+        <h1 class="text-text-primary text-3xl font-bold">Mi Colección</h1>
+        <p class="text-text-secondary mt-2">
+          Gestiona tu inventario de cartas. Usa los filtros para encontrar
+          cartas y los botones +/- para ajustar cantidades.
+        </p>
+      </div>
+      <div class="flex gap-3">
+        <button
+          id="btn-import"
+          onclick="document.getElementById('hidden-csv-input').click()"
+          class="bg-background-secondary hover:bg-border text-text-primary flex items-center gap-2 rounded-lg border border-white/10 px-4 py-2 font-bold transition-all hover:scale-105"
+        >
+          <Icon name="upload" class="h-5 w-5" />
+          Importar CSV
+        </button>
+        <a
+          href="/api/collection/export"
+          target="_blank"
+          class="bg-accent hover:bg-accent-hover hover:shadow-glow flex items-center gap-2 rounded-lg px-4 py-2 font-bold text-white transition-all hover:scale-105"
+        >
+          <Icon name="download" class="h-5 w-5" />
+          Exportar CSV
+        </a>
+      </div>
+    </header>
+
+    <Filtros showOwnedFilter={true} defaultAltArt={true} />
+    <div class="mt-6"></div>
+
+    <section
+      id="cartas-container"
+      class="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
+      aria-label="Colección de cartas"
+      data-has-more={hasMore.toString()}
+      data-collection-map={JSON.stringify(collectionMap)}
+    >
+      {
+        cartas.map((carta) => {
+          const quantity = collectionMap[carta.id] || 0;
+          const imgSrc = `https://img.deckoner.com/${carta.img}.webp`;
+          const isBeta = [15, 35, 42].includes(carta.belongs_gd_id ?? -1);
+          const isAlt = carta.alt_art === true;
+          let flagsHTML = "";
+
+          if (isAlt) {
+            flagsHTML += `
+            <span class="absolute top-2 right-2 text-black bg-purple-500 text-white font-bold text-xs px-5 py-1 rounded z-10 shadow-lg">
+              ALT
+            </span>
+          `;
+          }
+
+          if (isBeta) {
+            const betaTop = isAlt ? "top-10" : "top-2";
+            flagsHTML += `
+            <span class="absolute ${betaTop} right-2 text-black font-bold text-xs px-5 py-1 rounded z-10 shadow-lg"
+                  style="background-color: var(--color-accent);">
+              BETA
+            </span>
+          `;
+          }
+
+          return (
+            <article class="group bg-background-secondary hover:shadow-glow hover:border-accent/30 relative flex flex-col overflow-hidden rounded-xl border border-white/5 shadow-sm transition-all duration-300 hover:-translate-y-1">
+              <div class="relative aspect-[3/4] w-full overflow-hidden bg-gray-900">
+                <img
+                  src={imgSrc}
+                  alt={carta.gd ?? carta.name}
+                  class="h-full w-full object-contain transition-transform duration-500 group-hover:scale-105"
+                  loading="lazy"
+                />
+                <Fragment set:html={flagsHTML} />
+
+                {/* Quantity Overlay */}
+                <div class="absolute right-0 bottom-0 left-0 flex items-center justify-between border-t border-white/10 bg-black/80 p-2 backdrop-blur-sm">
+                  <button
+                    class="btn-update-qty flex h-8 w-8 items-center justify-center rounded-full bg-red-500/20 text-red-500 transition-colors hover:bg-red-500 hover:text-white"
+                    data-action="remove"
+                    data-id={carta.id}
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke-width="2"
+                      stroke="currentColor"
+                      class="h-4 w-4"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        d="M19.5 12h-15"
+                      />
+                    </svg>
+                  </button>
+                  <span
+                    class="text-lg font-bold text-white"
+                    id={`qty-${carta.id}`}
+                  >
+                    {quantity}
+                  </span>
+                  <button
+                    class="btn-update-qty flex h-8 w-8 items-center justify-center rounded-full bg-green-500/20 text-green-500 transition-colors hover:bg-green-500 hover:text-white"
+                    data-action="add"
+                    data-id={carta.id}
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke-width="2"
+                      stroke="currentColor"
+                      class="h-4 w-4"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        d="M12 4.5v15m7.5-7.5h-15"
+                      />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              <div class="flex flex-1 flex-col gap-2 p-4">
+                <div>
+                  <h2 class="text-text-primary group-hover:text-accent line-clamp-1 text-lg font-bold transition-colors">
+                    {carta.name ?? ""}
+                  </h2>
+                  <p class="text-text-muted text-xs">{carta.gd}</p>
+                </div>
+
+                <div class="text-text-secondary flex items-center gap-2 text-xs">
+                  <span class="text-accent font-medium">
+                    {carta.rarity ?? "N/A"}
+                  </span>
+                  <span class="h-1 w-1 rounded-full bg-white/20" />
+                  <span>Lvl {carta.level ?? "-"}</span>
+                  <span class="h-1 w-1 rounded-full bg-white/20" />
+                  <span>Cost {carta.cost ?? "-"}</span>
+                </div>
+              </div>
+            </article>
+          );
+        })
+      }
+    </section>
+
+    <div
+      id="loading"
+      class="text-text-secondary hidden animate-pulse py-8 text-center"
+    >
+      <div
+        class="border-accent inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]"
+      >
+      </div>
+      <span class="ml-2 font-medium">Cargando cartas...</span>
+    </div>
+  </section>
+
+  {/* Hidden File Input */}
+  <input type="file" id="hidden-csv-input" accept=".csv" class="hidden" />
+
+  {/* Import Modal */}
+  <div
+    id="import-modal"
+    class="fixed inset-0 z-50 hidden items-center justify-center bg-black/80 backdrop-blur-sm"
+  >
+    <div
+      class="bg-background-secondary border-border w-full max-w-md rounded-xl border p-6 shadow-2xl"
+    >
+      <h2 class="text-text-primary mb-4 text-2xl font-bold">
+        Confirmar Importación
+      </h2>
+      <p class="text-text-secondary mb-4 text-sm">Se importará el archivo:</p>
+      <div
+        class="bg-background text-accent mb-6 rounded-lg border border-white/10 p-3 text-center font-mono text-sm"
+      >
+        <span id="selected-file-name"></span>
+      </div>
+      <p class="text-text-muted mb-4 text-xs">
+        Asegúrate de que el CSV tenga las columnas: <code>gd</code>, <code
+          >name</code
+        >, <code>rarity</code>, <code>belongs_gd</code>, <code>quantity</code>.
+      </p>
+      <div class="flex justify-end gap-3">
+        <button
+          id="btn-cancel-import"
+          class="text-text-secondary hover:text-text-primary px-4 py-2 font-bold transition-colors"
+          >Cancelar</button
+        >
+        <button
+          id="btn-confirm-import"
+          class="bg-accent hover:bg-accent-hover rounded-lg px-4 py-2 font-bold text-white transition-colors"
+          >Importar</button
+        >
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Importar utilidad de toast y cardUtils
+    import { showToast } from "../../utils/toast";
+    import { getCardFlagsHTML } from "../../utils/cardUtils";
+
+    const container = document.getElementById("cartas-container");
+    const loading = document.getElementById("loading");
+    let page = 2;
+    let hasMore = container?.dataset.hasMore === "true";
+    let filtrosActuales = { altArt: false };
+    let isLoading = false;
+    let currentController = null;
+    let collectionMap = JSON.parse(container?.dataset.collectionMap || "{}");
+
+    // Lógica de renderizado de cartas (Reutilizada y adaptada)
+    function renderCard(carta) {
+      const quantity = collectionMap[carta.id] || 0;
+      const article = document.createElement("article");
+      article.className =
+        "group bg-background-secondary hover:shadow-glow hover:border-accent/30 relative flex flex-col overflow-hidden rounded-xl border border-white/5 shadow-sm transition-all duration-300 hover:-translate-y-1";
+
+      const imgSrc = `https://img.deckoner.com/${carta.img}.webp`;
+      const flagsHTML = getCardFlagsHTML(carta);
+
+      article.innerHTML = `
+            <div class="relative aspect-[3/4] w-full overflow-hidden bg-gray-900">
+                <img src="${imgSrc}" alt="${carta.gd ?? carta.name}" class="h-full w-full object-contain transition-transform duration-500 group-hover:scale-105" loading="lazy"/>
+                ${flagsHTML}
+                <div class="absolute bottom-0 left-0 right-0 bg-black/80 p-2 backdrop-blur-sm flex items-center justify-between border-t border-white/10">
+                    <button class="btn-update-qty h-8 w-8 rounded-full bg-red-500/20 text-red-500 hover:bg-red-500 hover:text-white flex items-center justify-center transition-colors" data-action="remove" data-id="${carta.id}">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 12h-15" /></svg>
+                    </button>
+                    <span class="text-white font-bold text-lg" id="qty-${carta.id}">${quantity}</span>
+                    <button class="btn-update-qty h-8 w-8 rounded-full bg-green-500/20 text-green-500 hover:bg-green-500 hover:text-white flex items-center justify-center transition-colors" data-action="add" data-id="${carta.id}">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                    </button>
+                </div>
+            </div>
+            <div class="flex flex-1 flex-col gap-2 p-4">
+                <div>
+                    <h2 class="text-text-primary group-hover:text-accent line-clamp-1 text-lg font-bold transition-colors">${carta.name ?? ""}</h2>
+                    <p class="text-text-muted text-xs">${carta.gd}</p>
+                </div>
+                <div class="text-text-secondary flex items-center gap-2 text-xs">
+                    <span class="text-accent font-medium">${carta.rarity ?? "N/A"}</span>
+                    <span class="h-1 w-1 rounded-full bg-white/20"></span>
+                    <span>Lvl ${carta.level ?? "-"}</span>
+                    <span class="h-1 w-1 rounded-full bg-white/20"></span>
+                    <span>Cost ${carta.cost ?? "-"}</span>
+                </div>
+            </div>
+        `;
+      return article;
+    }
+
+    // Lógica de scroll infinito y filtros
+    async function loadCartas(filtros = {}, reset = false) {
+      if (!hasMore && !reset) return;
+      if (isLoading) return;
+
+      isLoading = true;
+      if (loading) loading.classList.remove("hidden");
+
+      if (currentController) {
+        try {
+          currentController.abort();
+        } catch (e) {}
+      }
+      currentController = new AbortController();
+
+      const params = new URLSearchParams({ page: page.toString() });
+      Object.entries(filtros).forEach(([key, val]) => {
+        if (Array.isArray(val)) {
+          val.forEach((v) => params.append(key, v.toString()));
+        } else if (val || val === 0 || val === false) {
+          params.append(key, val.toString());
+        }
+      });
+
+      try {
+        const res = await fetch(`/api/cartas?${params.toString()}`, {
+          signal: currentController.signal,
+        });
+        if (!res.ok) throw new Error("Network response was not ok");
+        const data = await res.json();
+
+        if (reset && container) {
+          container.innerHTML = "";
+          // Refrescar map de colección al resetear/recargar para asegurar sincronización
+          const mapRes = await fetch("/api/collection?mode=map");
+          if (mapRes.ok) collectionMap = await mapRes.json();
+        }
+
+        if (container) {
+          data.cartas.forEach((carta) => {
+            container.appendChild(renderCard(carta));
+          });
+        }
+
+        page++;
+        hasMore = data.hasMore;
+      } catch (error) {
+        if (error instanceof Error && error.name !== "AbortError")
+          console.error("Error cargando cartas:", error);
+      } finally {
+        isLoading = false;
+        if (loading) loading.classList.add("hidden");
+      }
+    }
+
+    window.addEventListener("scroll", () => {
+      if (
+        window.innerHeight + window.scrollY >=
+        document.body.offsetHeight - 500
+      ) {
+        loadCartas(filtrosActuales);
+      }
+    });
+
+    window.addEventListener("aplicar-filtros", (e) => {
+      if (currentController) {
+        try {
+          currentController.abort();
+        } catch (err) {}
+        currentController = null;
+      }
+      const customEvent = e as CustomEvent;
+      filtrosActuales = customEvent.detail;
+      page = 1;
+      hasMore = true;
+      isLoading = false;
+      loadCartas(filtrosActuales, true);
+    });
+
+    // Gestión de cantidades
+    container.addEventListener("click", async (e) => {
+      const btn = e.target.closest(".btn-update-qty");
+      if (!btn) return;
+
+      const action = btn.dataset.action;
+      const cardId = parseInt(btn.dataset.id);
+      const qtySpan = document.getElementById(`qty-${cardId}`);
+      let currentQty = parseInt(qtySpan.textContent);
+
+      // Actualización de UI
+      if (action === "add") {
+        qtySpan.textContent = currentQty + 1;
+        collectionMap[cardId] = (collectionMap[cardId] || 0) + 1;
+
+        // Llamada API
+        fetch("/api/collection", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ cardId: cardId, quantity: 1 }),
+        }).catch((err) => {
+          console.error("Error adding card:", err);
+          // Revertir en caso de error
+          qtySpan.textContent = currentQty;
+          collectionMap[cardId] = currentQty;
+          showToast("Error al actualizar la colección", "error");
+        });
+      } else if (action === "remove" && currentQty > 0) {
+        const newQty = currentQty - 1;
+        qtySpan.textContent = newQty;
+        collectionMap[cardId] = Math.max(0, (collectionMap[cardId] || 0) - 1);
+
+        // Si el filtro "Solo cartas optenidas" está activo y la cantidad llega a 0, eliminar la carta de la vista
+        if (filtrosActuales.ownedOnly && newQty === 0) {
+          const cardElement = btn.closest(".group");
+          if (cardElement) {
+            cardElement.remove();
+          }
+        }
+
+        // Llamada API
+        fetch("/api/collection", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ cardId: cardId }),
+        }).catch((err) => {
+          console.error("Error removing card:", err);
+          // Revertir en caso de error
+          qtySpan.textContent = currentQty;
+          collectionMap[cardId] = currentQty;
+          showToast("Error al actualizar la colección", "error");
+        });
+      }
+    });
+
+    const btnCancelImport = document.getElementById("btn-cancel-import");
+    const btnConfirmImport = document.getElementById("btn-confirm-import");
+    const btnImport = document.getElementById("btn-import");
+    const hiddenFileInput = document.getElementById("hidden-csv-input");
+    const importModal = document.getElementById("import-modal");
+    const selectedFileName = document.getElementById("selected-file-name");
+
+    hiddenFileInput.addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        selectedFileName.textContent = file.name;
+        importModal.classList.remove("hidden");
+        importModal.classList.add("flex");
+      }
+    });
+
+    const closeModal = () => {
+      importModal.classList.add("hidden");
+      importModal.classList.remove("flex");
+      hiddenFileInput.value = ""; // Clear input to allow re-selecting same file
+      selectedFileName.textContent = "";
+    };
+
+    btnCancelImport.addEventListener("click", closeModal);
+    importModal.addEventListener("click", (e) => {
+      if (e.target === importModal) closeModal();
+    });
+
+    btnConfirmImport.addEventListener("click", async () => {
+      const file = hiddenFileInput.files[0];
+      if (!file) {
+        alert("No se ha seleccionado ningún archivo.");
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const originalText = btnConfirmImport.textContent;
+      btnConfirmImport.textContent = "Importando...";
+      btnConfirmImport.disabled = true;
+
+      try {
+        const res = await fetch("/api/collection/import", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (res.ok) {
+          alert("Importación exitosa!");
+          closeModal();
+          // Recargar para mostrar nuevas cantidades
+          window.location.reload();
+        } else {
+          const err = await res.json();
+          alert(`Error: ${err.error || "Falló la importación"}`);
+        }
+      } catch (error) {
+        console.error("Error importing:", error);
+        alert("Error al importar.");
+      } finally {
+        btnConfirmImport.textContent = originalText;
+        btnConfirmImport.disabled = false;
+      }
+    });
+  </script>
+</MainLayout>

@@ -1,0 +1,40 @@
+---
+const { title = "GundamTCG", maxWidth = "max-w-6xl" } = Astro.props;
+import "../styles/global.css";
+import Analytics from "@vercel/analytics/astro";
+import Navbar from "../components/Navbar.astro";
+import Footer from "../components/Footer.astro";
+---
+
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon" />
+  </head>
+  <body
+    class="bg-background text-text-primary selection:bg-accent flex min-h-screen flex-col overflow-x-hidden font-sans selection:text-white"
+  >
+    <div
+      class="fixed inset-0 -z-10 h-full w-full bg-[radial-gradient(#1a1a1a_1px,transparent_1px)] [mask-image:radial-gradient(ellipse_50%_50%_at_50%_50%,#000_70%,transparent_100%)] [background-size:16px_16px] opacity-20"
+      aria-hidden="true"
+    >
+    </div>
+
+    <Navbar />
+
+    <main class={`animate-fade-in mx-auto w-full ${maxWidth} flex-1 p-6`}>
+      <slot />
+    </main>
+
+    <Footer />
+    <div
+      id="toast-container"
+      class="pointer-events-none fixed right-0 bottom-4 z-50 flex flex-col items-end gap-2 px-4 sm:right-4 sm:bottom-4"
+    >
+    </div>
+    <Analytics />
+  </body>
+</html>

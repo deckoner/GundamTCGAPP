@@ -1,0 +1,128 @@
+---
+import Icon from "./Icon.astro";
+---
+
+<nav
+  class="bg-background/80 sticky top-0 z-50 w-full border-b border-white/10 backdrop-blur-md transition-all duration-300"
+>
+  <div class="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+    <a
+      href="/"
+      class="text-accent hover:text-accent-hover flex items-center gap-2 text-2xl font-bold transition-colors"
+    >
+      <span
+        class="from-accent to-accent-light bg-gradient-to-r bg-clip-text text-transparent"
+        >GundamTCG</span
+      >
+    </a>
+
+    <button
+      id="menu-toggle"
+      class="group flex flex-col gap-1.5 p-2 md:hidden"
+      aria-label="Abrir menú"
+    >
+      <span
+        class="bg-text-primary group-hover:bg-accent h-0.5 w-6 origin-left transition-all duration-300"
+      ></span>
+      <span
+        class="bg-text-primary group-hover:bg-accent h-0.5 w-6 transition-all duration-300"
+      ></span>
+      <span
+        class="bg-text-primary group-hover:bg-accent h-0.5 w-6 origin-left transition-all duration-300"
+      ></span>
+    </button>
+
+    <ul
+      id="menu"
+      class="bg-background/95 absolute top-full left-0 hidden w-full flex-col gap-2 border-b border-white/10 p-4 text-center text-sm font-medium shadow-lg backdrop-blur-md md:static md:flex md:w-auto md:flex-row md:items-center md:gap-8 md:border-0 md:bg-transparent md:p-0 md:shadow-none md:backdrop-blur-none"
+    >
+      <li>
+        <a
+          href="/"
+          class="hover:text-accent after:bg-accent relative block px-2 py-1 transition-colors after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:transition-all hover:after:w-full"
+          >Inicio</a
+        >
+      </li>
+      <li>
+        <a
+          href="/cartas"
+          class="hover:text-accent after:bg-accent relative block px-2 py-1 transition-colors after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:transition-all hover:after:w-full"
+          >Cartas</a
+        >
+      </li>
+      <li>
+        <a
+          href="/collection"
+          class="hover:text-accent after:bg-accent relative block px-2 py-1 transition-colors after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:transition-all hover:after:w-full"
+          >Colección</a
+        >
+      </li>
+      <li>
+        <a
+          href="/decks"
+          class="hover:text-accent after:bg-accent relative block px-2 py-1 transition-colors after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:transition-all hover:after:w-full"
+          >Decks</a
+        >
+      </li>
+      <li>
+        <a
+          href="/cuenta"
+          class="group border-accent/50 text-accent hover:bg-accent hover:text-background flex items-center justify-center gap-2 rounded-full border px-4 py-2 transition-all"
+        >
+          <span>Mi cuenta</span>
+          <Icon
+            name="arrow-right"
+            class="h-4 w-4 transition-transform group-hover:translate-x-1"
+          />
+        </a>
+      </li>
+    </ul>
+  </div>
+
+  <script>
+    const toggle = document.getElementById("menu-toggle");
+    const menu = document.getElementById("menu");
+    const spans = toggle?.querySelectorAll("span");
+
+    if (toggle && menu && spans) {
+      toggle.addEventListener("click", () => {
+        const isHidden = menu.classList.contains("hidden");
+
+        if (isHidden) {
+          menu.classList.remove("hidden");
+          menu.classList.add("flex", "animate-slide-up");
+
+          // Animación
+          spans[0].classList.add(
+            "rotate-45",
+            "translate-x-px",
+            "translate-y-[1px]",
+          );
+          spans[1].classList.add("opacity-0");
+          spans[2].classList.add(
+            "-rotate-45",
+            "translate-x-px",
+            "-translate-y-[1px]",
+          );
+        } else {
+          menu.classList.add("hidden");
+          menu.classList.remove("flex", "animate-slide-up");
+
+          // Animación
+          spans[0].classList.remove(
+            "rotate-45",
+            "translate-x-px",
+            "translate-y-[1px]",
+          );
+          spans[1].classList.remove("opacity-100");
+          spans[1].classList.remove("opacity-0");
+          spans[2].classList.remove(
+            "-rotate-45",
+            "translate-x-px",
+            "-translate-y-[1px]",
+          );
+        }
+      });
+    }
+  </script>
+</nav>

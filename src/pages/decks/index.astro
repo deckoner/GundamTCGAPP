@@ -1,0 +1,683 @@
+---
+import MainLayout from "../../layouts/MainLayout.astro";
+
+const user = Astro.locals.user;
+
+if (!user) {
+  return Astro.redirect("/login");
+}
+---
+
+<MainLayout title="Mis decks - GundamTCG">
+  <section class="container mx-auto px-4 py-8">
+    <header class="mb-8 flex items-center justify-between">
+      <div>
+        <h1 class="text-text-primary text-3xl font-bold">Mis Decks</h1>
+        <p class="text-text-secondary mt-2">
+          Crea y gestiona tus decks para jugar.
+        </p>
+      </div>
+      <button
+        id="btn-create-deck"
+        class="bg-accent hover:bg-accent-hover hover:shadow-glow flex items-center gap-2 rounded-lg px-6 py-3 font-bold text-white transition-all hover:scale-105"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke-width="2"
+          stroke="currentColor"
+          class="h-5 w-5"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M12 4.5v15m7.5-7.5h-15"></path>
+        </svg>
+        Crear Nuevo Deck
+      </button>
+    </header>
+
+    <section
+      id="decks-grid"
+      class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3"
+      aria-label="Lista de decks"
+    >
+      <!-- Los decks se cargarán aquí -->
+      <div class="col-span-full py-12 text-center">
+        <div
+          class="border-accent inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-r-transparent align-[-0.125em]"
+        >
+        </div>
+        <p class="text-text-secondary mt-4">Cargando decks...</p>
+      </div>
+    </section>
+  </section>
+
+  <!-- Create Deck Modal -->
+  <div
+    id="create-deck-modal"
+    class="fixed inset-0 z-50 hidden items-center justify-center bg-black/80 backdrop-blur-sm"
+  >
+    <div
+      class="bg-background-secondary border-border w-full max-w-md rounded-xl border p-6 shadow-2xl"
+    >
+      <h2 class="text-text-primary mb-4 text-2xl font-bold">
+        Crear Nuevo Deck
+      </h2>
+      <div class="mb-4">
+        <label for="deck-name" class="text-text-secondary mb-2 block text-sm"
+          >Nombre del Deck</label
+        >
+        <input
+          type="text"
+          id="deck-name"
+          class="bg-background-primary border-border text-text-primary focus:border-accent focus:ring-accent w-full rounded-lg border p-3 outline-none focus:ring-1"
+          placeholder="Ej: Suletta bebita <3"
+        />
+      </div>
+      <div class="flex justify-end gap-3">
+        <button
+          id="btn-cancel-create"
+          class="text-text-secondary hover:text-text-primary px-4 py-2 font-bold transition-colors"
+          >Cancelar</button
+        >
+        <button
+          id="btn-confirm-create"
+          class="bg-accent hover:bg-accent-hover rounded-lg px-4 py-2 font-bold text-white transition-colors"
+          >Crear</button
+        >
+      </div>
+    </div>
+  </div>
+
+  <!-- Deck Preview Modal -->
+  <div
+    id="deck-preview-modal"
+    class="fixed inset-0 z-[100] hidden items-start justify-center overflow-y-auto bg-[#000000e6] pt-20 pb-8 backdrop-blur-md"
+  >
+    <div
+      class="relative mx-4 flex w-full max-w-5xl flex-col rounded-xl border border-[#ffffff1a] bg-[#1a1a1a] shadow-2xl"
+    >
+      <!-- Botón cerrar -->
+      <button
+        id="btn-close-preview"
+        class="absolute top-4 right-4 z-50 rounded-full bg-[#00000080] p-2 text-[#ffffff80] transition-colors hover:bg-[#000000cc] hover:text-white"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke-width="2"
+          stroke="currentColor"
+          class="h-6 w-6"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+      </button>
+
+      <!-- Contenido Capturable -->
+      <div
+        id="preview-content"
+        style="background-color: #1a1a1a; border-radius: 0.75rem; padding: 2rem; position: relative;"
+      >
+        <!-- Encabezado -->
+        <div
+          class="mb-8 flex flex-col gap-8 pb-8 md:flex-row"
+          style="border-bottom: 1px solid rgba(255, 255, 255, 0.1);"
+        >
+          <!-- Estadísticas (Izquierda) -->
+          <div class="grid flex-1 grid-cols-2 gap-4">
+            <div>
+              <h4
+                class="mb-2 text-center text-xs font-bold uppercase"
+                style="color: #b3b3b3;"
+              >
+                Coste
+              </h4>
+              <div class="h-24 w-full">
+                <canvas id="preview-cost-chart"></canvas>
+              </div>
+            </div>
+            <div>
+              <h4
+                class="mb-2 text-center text-xs font-bold uppercase"
+                style="color: #b3b3b3;"
+              >
+                Nivel
+              </h4>
+              <div class="h-24 w-full">
+                <canvas id="preview-level-chart"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- Logo (Derecha) -->
+          <div class="flex flex-col items-end justify-center">
+            <div
+              class="flex items-center gap-2 text-4xl font-bold"
+              style="color: #ff8c00;"
+            >
+              <span>GundamTCG</span>
+            </div>
+            <span
+              class="mt-1 text-2xl font-thin tracking-[0.2em]"
+              style="color: #ffffff;">DECKONER</span
+            >
+            <h3
+              id="preview-deck-name"
+              class="mt-4 w-full pt-2 text-right text-xl font-bold"
+              style="color: #ffffff; border-top: 1px solid rgba(255, 140, 0, 0.3);"
+            >
+              Nombre del Deck
+            </h3>
+          </div>
+        </div>
+
+        <!-- Lista de Cartas -->
+        <div class="mb-8">
+          <h4
+            class="mb-4 pl-2 text-sm font-bold tracking-wider uppercase"
+            style="color: #ff8c00; border-left: 4px solid #ff8c00;"
+          >
+            Deck List
+          </h4>
+          <div
+            id="preview-card-list"
+            class="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5"
+          >
+            <!-- Las cartas se renderizan aquí -->
+          </div>
+        </div>
+
+        <!-- Recursos -->
+        <div>
+          <div class="mb-4 flex items-center gap-2">
+            <div
+              style="width: 4px; height: 1.25rem; background-color: #60a5fa;"
+            >
+            </div>
+            <h4
+              class="text-sm font-bold tracking-wider uppercase"
+              style="color: #60a5fa;"
+            >
+              Recursos
+            </h4>
+          </div>
+          <div
+            id="preview-resource-list"
+            class="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5"
+          >
+            <!-- Los recursos se renderizan aquí -->
+          </div>
+        </div>
+
+        <!-- Marca de agua oculta que se muestra al descargar si se desea, o simplemente parte del diseño -->
+      </div>
+
+      <!-- Acciones del pie de página -->
+      <div
+        class="flex justify-end gap-4 rounded-b-xl border-t border-[#ffffff1a] bg-[#00000033] p-6"
+      >
+        <button
+          id="btn-download-image"
+          class="flex items-center gap-2 rounded-lg bg-[#ff8c00] px-6 py-2 font-bold text-white transition-all hover:scale-105 hover:bg-[#ffa733]"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke-width="2"
+            stroke="currentColor"
+            class="h-5 w-5"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M12 12.75l-3-3m0 0l-3 3m3-3v7.5"
+            ></path>
+          </svg>
+          Descargar Imagen
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    import type { Deck, Card } from "../../types";
+    import Chart from "chart.js/auto";
+    import * as htmlToImage from "html-to-image";
+
+    const decksGrid = document.getElementById("decks-grid");
+    const btnCreateDeck = document.getElementById("btn-create-deck");
+    const createDeckModal = document.getElementById("create-deck-modal");
+    const btnCancelCreate = document.getElementById("btn-cancel-create");
+    const btnConfirmCreate = document.getElementById("btn-confirm-create");
+    const deckNameInput = document.getElementById(
+      "deck-name",
+    ) as HTMLInputElement;
+
+    // Elementos del Modal de Previsualización
+    const previewModal = document.getElementById("deck-preview-modal");
+    const btnClosePreview = document.getElementById("btn-close-preview");
+    const btnDownloadImage = document.getElementById("btn-download-image");
+    const previewContent = document.getElementById("preview-content");
+    const previewDeckName = document.getElementById("preview-deck-name");
+    const previewCardList = document.getElementById("preview-card-list");
+    const previewResourceList = document.getElementById(
+      "preview-resource-list",
+    );
+
+    let allDecks: Deck[] = [];
+    let costChartInstance: Chart | null = null;
+    let levelChartInstance: Chart | null = null;
+
+    // Cargar decks
+    async function loadDecks() {
+      try {
+        const res = await fetch("/api/decks");
+        if (!res.ok) throw new Error("Error loading decks");
+        allDecks = await res.json();
+        const decks = allDecks;
+
+        if (!decksGrid) return;
+
+        if (decks.length === 0) {
+          decksGrid.innerHTML = `
+            <div class="col-span-full py-12 text-center border border-dashed border-white/10 rounded-xl bg-white/5">
+                <p class="text-text-secondary text-lg mb-4">No tienes decks creados aún.</p>
+                <button class="text-accent hover:text-accent-hover font-bold" onclick="document.getElementById('btn-create-deck')?.click()">
+                    ¡Crea tu primer deck!
+                </button>
+            </div>
+          `;
+          return;
+        }
+
+        function createDeckCard(deck: Deck) {
+          const isValid = deck.totalCards === 50;
+          const cardCountClass = isValid
+            ? "text-text-secondary"
+            : "text-red-500 font-bold";
+          const statusText = isValid ? "" : " (Ilegal)";
+
+          const article = document.createElement("article");
+          article.className =
+            "group bg-background-secondary hover:shadow-glow hover:border-accent/30 relative flex flex-col overflow-hidden rounded-xl border border-white/5 shadow-sm transition-all duration-300 hover:-translate-y-1 cursor-pointer deck-card";
+          article.dataset.id = deck.id.toString();
+
+          article.innerHTML = `
+                <div class="p-6 flex-1 pointer-events-none">
+                    <h3 class="text-text-primary text-xl font-bold mb-2 group-hover:text-accent transition-colors">${deck.name}</h3>
+                    <div class="flex items-center gap-4 text-text-secondary text-sm mb-4">
+                        <div class="flex items-center gap-1">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                            </svg>
+                            <span class="${cardCountClass}">${deck.totalCards} Cartas${statusText}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="p-4 bg-black/20 border-t border-white/5 flex justify-between items-center z-10 relative" onclick="event.stopPropagation()">
+                    <a href="/decks/${deck.id}" class="text-accent hover:text-white font-bold text-sm transition-colors">Editar Deck</a>
+                    <button class="text-red-500 hover:text-red-400 font-bold text-sm transition-colors btn-delete-deck" data-id="${deck.id}">Eliminar</button>
+                </div>
+            `;
+
+          article.addEventListener("click", (e) => {
+            const target = e.target as HTMLElement;
+            if (target.closest("a") || target.closest("button")) return;
+
+            openPreviewModal(deck.id);
+          });
+
+          return article;
+        }
+
+        decksGrid.innerHTML = "";
+        decks.forEach((deck: Deck) => {
+          decksGrid.appendChild(createDeckCard(deck));
+        });
+
+        // Aviso de eliminacion de deck
+        document.querySelectorAll(".btn-delete-deck").forEach((btn) => {
+          btn.addEventListener("click", async (e) => {
+            e.stopPropagation();
+            if (!confirm("¿Estás seguro de que quieres eliminar este deck?"))
+              return;
+            const id = (e.target as HTMLElement).dataset.id;
+            try {
+              const res = await fetch(`/api/decks/${id}`, {
+                method: "DELETE",
+              });
+              if (res.ok) {
+                loadDecks();
+              } else {
+                alert("Error al eliminar el deck");
+              }
+            } catch (error) {
+              console.error(error);
+              alert("Error al eliminar el deck");
+            }
+          });
+        });
+      } catch (error) {
+        console.error(error);
+        if (decksGrid) {
+          decksGrid.innerHTML = `<p class="text-red-500 col-span-full text-center">Error cargando decks.</p>`;
+        }
+      }
+    }
+
+    // Lógica del Modal para Crear Deck
+    const openModal = () => {
+      if (!createDeckModal || !deckNameInput) return;
+      createDeckModal.classList.remove("hidden");
+      createDeckModal.classList.add("flex");
+      deckNameInput.focus();
+    };
+
+    const closeModal = () => {
+      if (!createDeckModal || !deckNameInput) return;
+      createDeckModal.classList.add("hidden");
+      createDeckModal.classList.remove("flex");
+      deckNameInput.value = "";
+    };
+
+    if (btnCreateDeck) btnCreateDeck.addEventListener("click", openModal);
+    if (btnCancelCreate) btnCancelCreate.addEventListener("click", closeModal);
+    if (createDeckModal) {
+      createDeckModal.addEventListener("click", (e) => {
+        if (e.target === createDeckModal) closeModal();
+      });
+    }
+
+    if (btnConfirmCreate) {
+      btnConfirmCreate.addEventListener("click", async () => {
+        const name = deckNameInput.value.trim();
+        if (!name) {
+          alert("Por favor ingresa un nombre para el deck.");
+          return;
+        }
+
+        try {
+          const res = await fetch("/api/decks", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name }),
+          });
+
+          if (res.ok) {
+            closeModal();
+            loadDecks();
+          } else {
+            const data = await res.json();
+            alert(data.error || "Error al crear el deck");
+          }
+        } catch (error) {
+          console.error(error);
+          alert("Error al crear el deck");
+        }
+      });
+    }
+
+    // Logica del modal
+
+    function openPreviewModal(deckId: number) {
+      if (!previewModal) return;
+      const deck = allDecks.find((d) => d.id === deckId);
+      if (!deck) return;
+
+      // Popular Datos
+      if (previewDeckName) previewDeckName.textContent = deck.name;
+
+      renderPreviewCharts(deck);
+      renderPreviewList(deck);
+
+      // Mostrar Modal
+      previewModal.classList.remove("hidden");
+      previewModal.classList.add("flex");
+      document.body.style.overflow = "hidden";
+    }
+
+    function closePreviewModal() {
+      if (!previewModal) return;
+      previewModal.classList.add("hidden");
+      previewModal.classList.remove("flex");
+      document.body.style.overflow = "";
+    }
+
+    if (btnClosePreview)
+      btnClosePreview.addEventListener("click", closePreviewModal);
+    if (previewModal) {
+      previewModal.addEventListener("click", (e) => {
+        if (e.target === previewModal) closePreviewModal();
+      });
+    }
+
+    // Lógica de Descarga de Imagen
+    if (btnDownloadImage) {
+      btnDownloadImage.addEventListener("click", async () => {
+        if (!previewContent) return;
+        const originalText = btnDownloadImage.innerHTML;
+        btnDownloadImage.innerHTML = `
+             <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+             </svg> Generando...`;
+        btnDownloadImage.classList.add("pointer-events-none", "opacity-70");
+
+        try {
+          await document.fonts.ready; // Esperar a las fuentes
+          const dataUrl = await htmlToImage.toPng(previewContent, {
+            backgroundColor: "#1a1a1a",
+          });
+
+          const link = document.createElement("a");
+          link.download = `deck-${previewDeckName?.textContent || "preview"}.png`;
+          link.href = dataUrl;
+          link.click();
+        } catch (err: any) {
+          console.error("Error generating image:", err);
+          alert(`Error creando la imagen: ${err.message || err}`);
+        } finally {
+          btnDownloadImage.innerHTML = originalText;
+          btnDownloadImage.classList.remove(
+            "pointer-events-none",
+            "opacity-70",
+          );
+        }
+      });
+    }
+
+    function renderPreviewCharts(deck: any) {
+      const isMS = (c: any) => {
+        return c.level !== undefined && c.level !== null;
+      };
+
+      // Parsear cartas
+      const cards = deck.deck_cards.map((dc: any) => ({
+        ...dc.cards,
+        quantity: dc.quantity,
+      }));
+      const units = cards.filter(
+        (c: any) => c.cost !== null && c.level !== null,
+      );
+
+      // Distribución de Coste
+      const costs: Record<number, number> = {};
+      units.forEach((c: any) => {
+        const cost = c.cost ?? 0;
+        costs[cost] = (costs[cost] || 0) + c.quantity;
+      });
+      const costLabels = Object.keys(costs).sort(
+        (a, b) => Number(a) - Number(b),
+      );
+      const costData = costLabels.map((l) => costs[Number(l)]);
+
+      // Distribución de Nivel
+      const levels: Record<number, number> = {};
+      units.forEach((c: any) => {
+        if (c.level !== null) {
+          const lvl = c.level;
+          levels[lvl] = (levels[lvl] || 0) + c.quantity;
+        }
+      });
+      const levelLabels = Object.keys(levels).sort(
+        (a, b) => Number(a) - Number(b),
+      );
+      const levelData = levelLabels.map((l) => levels[Number(l)]);
+
+      // Destruir gráficos antiguos
+      if (costChartInstance) costChartInstance.destroy();
+      if (levelChartInstance) levelChartInstance.destroy();
+
+      // Opciones del gráfico
+      const options = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: { display: false },
+            grid: { display: false, drawBorder: false },
+          },
+          x: {
+            grid: { display: false, drawBorder: false },
+            ticks: { color: "#aaa", font: { size: 10 } },
+          },
+        },
+        animation: { duration: 0 }, // Desactivar animación para renderizado inmediato (¿mejor para captura?)
+      };
+
+      // Renderizar Gráfico de Coste
+      const ctxCost = document.getElementById(
+        "preview-cost-chart",
+      ) as HTMLCanvasElement;
+      if (ctxCost) {
+        costChartInstance = new Chart(ctxCost, {
+          type: "bar",
+          data: {
+            labels: costLabels,
+            datasets: [
+              {
+                label: "Coste",
+                data: costData,
+                backgroundColor: "#fbbf24", // Amber/Gold like general Gundam yellow or Accent
+                borderRadius: 2,
+              },
+            ],
+          },
+          options: options as any,
+        });
+      }
+
+      // Renderizar Gráfico de Nivel
+      const ctxLevel = document.getElementById(
+        "preview-level-chart",
+      ) as HTMLCanvasElement;
+      if (ctxLevel) {
+        levelChartInstance = new Chart(ctxLevel, {
+          type: "bar",
+          data: {
+            labels: levelLabels,
+            datasets: [
+              {
+                label: "Nivel",
+                data: levelData,
+                backgroundColor: "#3b82f6", // Blue
+                borderRadius: 2,
+              },
+            ],
+          },
+          options: options as any,
+        });
+      }
+    }
+
+    function renderPreviewList(deck: any) {
+      if (!previewCardList || !previewResourceList) return;
+      previewCardList.innerHTML = "";
+      previewResourceList.innerHTML = "";
+
+      // Parsear
+      const allCards = deck.deck_cards.map((dc: any) => ({
+        ...dc.cards,
+        quantity: dc.quantity,
+      }));
+
+      // Heurística: Los recursos usualmente no tienen coste de juego o nivel en muchos TCGs, o podemos verificar rangos de ID/Nombres si se conocen.
+      // Por ahora, asumamos que las cartas sin 'cost' son recursos o cartas especiales.
+      // O si el coste está presente.
+      const mainDeck = allCards.filter(
+        (c: any) => c.cost !== null && c.cost !== undefined,
+      );
+      const resourceDeck = allCards.filter(
+        (c: any) => c.cost === null || c.cost === undefined,
+      );
+
+      // Ordenar Principal: Nivel -> Coste -> Nombre
+      mainDeck.sort((a: any, b: any) => {
+        const levelDiff = (a.level ?? 0) - (b.level ?? 0);
+        if (levelDiff !== 0) return levelDiff;
+        const costDiff = (a.cost ?? 0) - (b.cost ?? 0);
+        if (costDiff !== 0) return costDiff;
+        return a.name.localeCompare(b.name);
+      });
+
+      // Ordenar Recursos: Nombre
+      resourceDeck.sort((a: any, b: any) => a.name.localeCompare(b.name));
+
+      // Renderizar Principal
+      mainDeck.forEach((card: any) => {
+        const div = createPreviewCard(card);
+        previewCardList.appendChild(div);
+      });
+
+      // Renderizar Recursos
+      if (resourceDeck.length > 0) {
+        (
+          previewResourceList.previousElementSibling as HTMLElement
+        ).style.display = "block";
+        previewResourceList.style.display = "grid"; // Restaurar grid
+        resourceDeck.forEach((card: any) => {
+          const div = createPreviewCard(card);
+          previewResourceList.appendChild(div);
+        });
+      } else {
+        (
+          previewResourceList.previousElementSibling as HTMLElement
+        ).style.display = "none";
+        previewResourceList.style.display = "none";
+      }
+    }
+
+    function createPreviewCard(card: any) {
+      const div = document.createElement("div");
+      div.className = "flex flex-col gap-1 items-center group relative";
+
+      // Imagen
+      const originalUrl = `https://img.deckoner.com/${card.img}.webp`;
+      const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(originalUrl)}`;
+
+      div.innerHTML = `
+            <div style="position: relative; width: 100%; border-radius: 0.5rem; overflow: hidden; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5); border: 1px solid rgba(255, 255, 255, 0.1); background-color: rgba(0, 0, 0, 0.5);">
+                <img src="${proxyUrl}" style="width: 100%; height: auto; display: block;" alt="${card.name}">
+                <!-- Insignia de Cantidad -->
+                <div style="position: absolute; bottom: 0; right: 0; background-color: #ff8c00; color: white; font-weight: bold; font-size: 1.125rem; padding: 0.25rem 0.75rem; border-top-left-radius: 0.5rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center;">
+                    x${card.quantity}
+                </div>
+            </div>
+        `;
+      return div;
+    }
+
+    // Carga inicial
+    loadDecks();
+  </script>
+</MainLayout>
+```

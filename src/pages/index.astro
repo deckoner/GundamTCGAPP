@@ -1,0 +1,85 @@
+---
+import MainLayout from "../layouts/MainLayout.astro";
+import Icon from "../components/Icon.astro";
+---
+
+<MainLayout title="Inicio - GundamTCG">
+  <section
+    class="animate-fade-in flex flex-col items-center justify-center py-20 text-center"
+  >
+    <div class="mb-6">
+      <h1 class="text-5xl font-extrabold tracking-tight md:text-7xl">
+        <span class="text-white">Gundam</span>
+        <span class="text-accent">TCG</span>
+      </h1>
+    </div>
+    <p class="text-text-secondary mb-8 max-w-2xl text-lg md:text-xl">
+      La plataforma definitiva para coleccionistas y jugadores. Gestiona tus
+      cartas, crea decks invencibles y domina el campo de batalla.
+    </p>
+    <div class="flex flex-wrap justify-center gap-4">
+      <a
+        href="/cartas"
+        class="group bg-accent hover:bg-accent-hover hover:shadow-glow relative inline-flex items-center justify-center overflow-hidden rounded-lg px-8 py-3 font-bold text-white transition-all duration-300 hover:scale-105"
+      >
+        <span class="mr-2">Explorar Cartas</span>
+        <Icon
+          name="search"
+          class="h-5 w-5 transition-transform group-hover:translate-x-1"
+        />
+      </a>
+      <a
+        href="/decks"
+        class="border-border bg-background-secondary text-text-primary hover:bg-border inline-flex items-center justify-center rounded-lg border px-8 py-3 font-bold transition-all duration-300 hover:scale-105 hover:text-white"
+      >
+        Ver Decks
+      </a>
+    </div>
+  </section>
+  <section
+    class="animate-slide-up grid gap-8 py-12 md:grid-cols-3"
+    style="animation-delay: 0.2s;"
+  >
+    <article
+      class="rounded-xl border border-white/5 bg-white/5 p-6 backdrop-blur-sm"
+    >
+      <div class="bg-accent/10 text-accent mb-4 inline-block rounded-lg p-3">
+        <Icon name="database" class="h-8 w-8" />
+      </div>
+      <h3 class="text-text-primary mb-2 text-xl font-bold">
+        Base de Datos Completa
+      </h3>
+      <p class="text-text-secondary">
+        Accede a información detallada de todas las cartas, incluyendo rarezas,
+        costos y efectos.
+      </p>
+    </article>
+    <article
+      class="rounded-xl border border-white/5 bg-white/5 p-6 backdrop-blur-sm"
+    >
+      <div class="bg-accent/10 text-accent mb-4 inline-block rounded-lg p-3">
+        <Icon name="deck" class="h-8 w-8" />
+      </div>
+      <h3 class="text-text-primary mb-2 text-xl font-bold">
+        Constructor de Decks
+      </h3>
+      <p class="text-text-secondary">
+        Crea, guarda y comparte tus estrategias ganadoras con la comunidad.
+      </p>
+    </article>
+    <article
+      class="rounded-xl border border-white/5 bg-white/5 p-6 backdrop-blur-sm"
+    >
+      <div class="bg-accent/10 text-accent mb-4 inline-block rounded-lg p-3">
+        <Icon name="collection" class="h-8 w-8" />
+      </div>
+      <h3 class="text-text-primary mb-2 text-xl font-bold">
+        Gestiona tu Colección
+      </h3>
+      <p class="text-text-secondary">
+        Lleva un registro detallado de tus cartas y mantén tu inventario
+        organizado.
+      </p>
+    </article>
+  </section>
+</MainLayout>

@@ -1,0 +1,249 @@
+---
+export const prerender = true;
+
+import MainLayout from "../../layouts/MainLayout.astro";
+import prisma from "../../utils/prismaClient";
+
+// Generar rutas estáticas para todas las cartas con alt_art = false
+export async function getStaticPaths() {
+  const cartas = await prisma.cards.findMany({
+    where: { alt_art: false },
+    select: {
+      gd: true,
+      name: true,
+      rarity: true,
+      level: true,
+      cost: true,
+      text_card: true,
+      ap: true,
+      hp: true,
+      img: true,
+      anime: { select: { anime: true } },
+      belongs_gd: { select: { belongs_gd: true, id: true } },
+      link: { select: { link: true } },
+      card_colors: { select: { color: { select: { color: true } } } },
+      card_types: { select: { type: { select: { type: true } } } },
+      card_tags: { select: { tag: { select: { tag: true } } } },
+      card_traits: { select: { trait: { select: { trait: true } } } },
+    },
+  });
+
+  const altArts = await prisma.cards.findMany({
+    where: { alt_art: true },
+    select: {
+      gd: true,
+      img: true,
+      belongs_gd_id: true,
+    },
+  });
+
+  await prisma.$disconnect();
+
+  const excludedGDIds = [15, 35, 42];
+
+  const cartasConAlt = cartas.map((carta) => {
+    const prefix = carta.img ?? "";
+    const altImgs = altArts
+      .filter((alt) => alt.img && prefix && alt.img.startsWith(prefix))
+      .map((alt) => alt.img!)
+      .filter(Boolean);
+
+    return {
+      ...carta,
+      alt_imgs: altImgs,
+    };
+  });
+
+  return cartasConAlt.map((carta) => ({
+    params: { gd: carta.gd },
+    props: { carta },
+  }));
+}
+
+const { carta } = Astro.props;
+---
+
+<MainLayout title={carta.name}>
+  <article class="flex flex-col items-center justify-center space-y-10 py-12">
+    <h1 class="text-accent text-center text-5xl font-extrabold">
+      {carta.name}
+    </h1>
+
+    <section
+      class="flex w-full flex-col items-center gap-8 px-4 sm:flex-row sm:items-start sm:justify-center sm:gap-12"
+    >
+      {
+        carta.img && (
+          <img
+            src={`https://img.deckoner.com/${carta.img}.webp`}
+            alt={`Imagen de ${carta.name}`}
+            class="w-72 rounded-3xl shadow-2xl sm:w-80 md:w-96"
+            loading="lazy"
+          />
+        )
+      }
+
+      <div
+        class="bg-background-secondary flex w-full max-w-lg flex-col gap-3 rounded-2xl p-6 text-sm shadow-lg sm:p-8 sm:text-base"
+      >
+        <p>
+          {
+            carta.gd && (
+              <>
+                <strong>GD:</strong> {carta.gd}
+              </>
+            )
+          }
+        </p>
+        {
+          carta.card_colors?.length > 0 && (
+            <p class="text-center sm:text-left">
+              <strong>Color:</strong>{" "}
+              {carta.card_colors.map((c) => c.color.color).join(", ")}
+            </p>
+          )
+        }
+
+        {
+          carta.card_traits?.length > 0 && (
+            <div>
+              <strong>Traits:</strong>
+              <div class="mt-1 flex flex-wrap justify-center gap-2 sm:justify-start">
+                {carta.card_traits.map((t) => (
+                  <span class="bg-accent/20 text-accent rounded-full px-3 py-1 text-xs font-semibold">
+                    {t.trait.trait}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )
+        }
+        <p>
+          {
+            carta.rarity && (
+              <>
+                <strong>Rareza:</strong> {carta.rarity}
+              </>
+            )
+          }
+        </p>
+        <p>
+          {
+            carta.level && (
+              <>
+                <strong>Nivel:</strong> {carta.level}
+              </>
+            )
+          }
+        </p>
+        <p>
+          {
+            carta.cost && (
+              <>
+                <strong>Coste:</strong> {carta.cost}
+              </>
+            )
+          }
+        </p>
+        <p>
+          {
+            carta.ap && (
+              <>
+                <strong>AP:</strong> {carta.ap}
+              </>
+            )
+          }
+        </p>
+        <p>
+          {
+            carta.hp && (
+              <>
+                <strong>HP:</strong> {carta.hp}
+              </>
+            )
+          }
+        </p>
+        <p>
+          {
+            carta.link?.link && (
+              <>
+                <strong>Link:</strong> {carta.link.link}
+              </>
+            )
+          }
+        </p>
+        <p>
+          {
+            carta.belongs_gd?.belongs_gd && (
+              <>
+                <strong>GD base:</strong> {carta.belongs_gd.belongs_gd}
+              </>
+            )
+          }
+        </p>
+        <p>
+          {
+            carta.card_types?.length > 0 && (
+              <>
+                <strong>Tipo:</strong>{" "}
+                {carta.card_types.map((t) => t.type.type).join(", ")}
+              </>
+            )
+          }
+        </p>
+
+        {
+          carta.card_tags?.length > 0 && (
+            <div>
+              <strong>Tags:</strong>
+              <div class="mt-1 flex flex-wrap justify-center gap-2 sm:justify-start">
+                {carta.card_tags.map((t) => (
+                  <span class="bg-accent/20 text-accent rounded-full px-3 py-1 text-xs font-semibold">
+                    {t.tag.tag}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )
+        }
+
+        {
+          carta.anime?.anime && (
+            <p>
+              <strong>Anime:</strong> {carta.anime.anime}
+            </p>
+          )
+        }
+
+        {
+          carta.text_card && (
+            <p class="pt-4 text-center whitespace-pre-line sm:text-left">
+              <br />
+              {carta.text_card}
+            </p>
+          )
+        }
+      </div>
+    </section>
+
+    {
+      carta.alt_imgs.length > 0 && (
+        <section class="w-full max-w-5xl px-4">
+          <h2 class="mb-6 text-center text-3xl font-semibold">
+            Artes alternativas
+          </h2>
+          <div class="grid grid-cols-1 place-items-center gap-6 sm:grid-cols-2 md:grid-cols-3">
+            {carta.alt_imgs.map((img) => (
+              <img
+                src={`https://img.deckoner.com/${img}.webp`}
+                alt={`Arte alternativo de ${carta.name}`}
+                class="w-64 rounded-2xl shadow-xl sm:w-72 md:w-80"
+                loading="lazy"
+              />
+            ))}
+          </div>
+        </section>
+      )
+    }
+  </article>
+</MainLayout>
