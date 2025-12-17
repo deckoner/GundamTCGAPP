@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🤖 GundamTCG
+# GundamTCG
 
 [![Astro](https://img.shields.io/badge/Astro-5.16-FF5D01?style=for-the-badge&logo=astro&logoColor=white)](https://astro.build)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
