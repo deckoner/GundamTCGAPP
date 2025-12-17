@@ -51,8 +51,10 @@ export const onRequest: MiddlewareHandler = async (context, next) => {
   }
 
   // Si el usuario NO está autenticado
-  // Permitir rutas públicas
-  if (isPublic(currentPath)) {
+  if (
+    isPublic(currentPath) ||
+    (currentPath.startsWith("/cartas/") && currentPath !== "/cartas/")
+  ) {
     return next();
   }
 
