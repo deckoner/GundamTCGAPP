@@ -43,6 +43,8 @@ export const onRequest: MiddlewareHandler = async (context, next) => {
 
 function isProtectedRoute(path: string): boolean {
   if (
+    path === "/" ||
+    path.startsWith("/cartas") ||
     path.startsWith("/login") ||
     path.startsWith("/api/login") ||
     path.startsWith("/api/cron") ||
