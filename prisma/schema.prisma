@@ -77,8 +77,8 @@ model cards {
   link_id          Int?
   anime_id         Int?
   belongs_gd_id    Int?
-  ap               String?            @db.Text
-  hp               String?            @db.Text
+  ap               String?            @db.VarChar(50)
+  hp               String?            @db.VarChar(50)
   img              String?            @db.Text
   alt_art          Boolean?
   color_ids        String?            @db.Text
@@ -89,13 +89,13 @@ model cards {
   deck_cards       deck_cards[]
   user_collections user_collections[]
 
-  // Relaciones many-to-many
+  // Relaciones muchos a muchos
   card_colors card_colors[]
   card_types  card_types[]
   card_tags   card_tags[]
   card_traits card_traits[]
 
-  // Relaciones one-to-one con tablas lookup
+  // Relaciones uno a uno con tablas de búsqueda (lookup)
   anime      animes?      @relation(fields: [anime_id], references: [id])
   belongs_gd belongs_gd?  @relation(fields: [belongs_gd_id], references: [id])
   zone       zones?        @relation(fields: [zone_id], references: [id])
@@ -109,6 +109,7 @@ model cards {
   @@index([belongs_gd_id])
   @@index([zone_id])
   @@index([link_id])
+  @@index([gd])
 }
 
 model colors {
