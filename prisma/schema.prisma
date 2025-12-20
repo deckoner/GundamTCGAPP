@@ -29,6 +29,7 @@ model card_colors {
   color colors @relation(fields: [color_id], references: [id])
 
   @@id([card_id, color_id])
+  @@index([color_id])
 }
 
 model card_tags {
@@ -39,6 +40,7 @@ model card_tags {
   tag   tags  @relation(fields: [tag_id], references: [id])
 
   @@id([card_id, tag_id])
+  @@index([tag_id])
 }
 
 model card_types {
@@ -49,6 +51,7 @@ model card_types {
   type  types @relation(fields: [type_id], references: [id])
 
   @@id([card_id, type_id])
+  @@index([type_id])
 }
 
 model card_traits {
@@ -59,12 +62,13 @@ model card_traits {
   trait  traits @relation(fields: [trait_id], references: [id])
 
   @@id([card_id, trait_id])
+  @@index([trait_id])
 }
 
 model cards {
   id               Int                @id @default(autoincrement())
   gd               String?            @db.VarChar(50)
-  name             String?            @db.Text
+  name             String?            @db.VarChar(255)
   rarity           String?            @db.VarChar(50)
   level            Int?
   cost             Int?
@@ -96,6 +100,15 @@ model cards {
   belongs_gd belongs_gd?  @relation(fields: [belongs_gd_id], references: [id])
   zone       zones?        @relation(fields: [zone_id], references: [id])
   link       links?        @relation(fields: [link_id], references: [id])
+
+  @@index([name])
+  @@index([rarity])
+  @@index([cost])
+  @@index([level])
+  @@index([anime_id])
+  @@index([belongs_gd_id])
+  @@index([zone_id])
+  @@index([link_id])
 }
 
 model colors {
