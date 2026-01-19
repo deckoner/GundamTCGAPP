@@ -7,11 +7,12 @@ export const GET: APIRoute = async ({ request, locals }) => {
   const user = locals.user;
 
   if (!user) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+    return new Response(JSON.stringify({ error: "No autorizado" }), {
       status: 401,
     });
   }
 
+  // Obtener la colección completa del usuario
   const collection = await prisma.user_collections.findMany({
     where: { user_id: user.id },
     include: {
@@ -23,8 +24,10 @@ export const GET: APIRoute = async ({ request, locals }) => {
     },
   });
 
+  // Generar cabeceras CSV
   const csvRows = [["gd", "name", "rarity", "belongs_gd", "quantity"]];
 
+  // Poblar filas
   collection.forEach((item) => {
     csvRows.push([
       item.cards.gd || "",
@@ -37,6 +40,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
 
   const csvContent = csvRows.map((row) => row.join(",")).join("\n");
 
+  // Devolver archivo CSV para descarga
   return new Response(csvContent, {
     status: 200,
     headers: {

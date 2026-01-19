@@ -11,6 +11,8 @@ export const PUT: APIRoute = async ({ request, cookies, locals }) => {
       status: 401,
     });
   }
+  
+  // Protección para la cuenta demo
   if (user.username === "demo") {
     return new Response(
       JSON.stringify({ error: "No puedes modificar la cuenta demo" }),
@@ -31,7 +33,7 @@ export const PUT: APIRoute = async ({ request, cookies, locals }) => {
       );
     }
 
-    // Verificar contraseña actual
+    // Verificar contraseña actual en la base de datos
     const dbUser = await prisma.users.findUnique({
       where: { id: user.id },
     });
@@ -52,7 +54,7 @@ export const PUT: APIRoute = async ({ request, cookies, locals }) => {
 
     const updates: any = {};
 
-    // Actualizar Username
+    // Actualizar nombre de usuario si cambió
     if (newUsername && newUsername.trim() !== user.username) {
       const existing = await prisma.users.findUnique({
         where: { username: newUsername },
@@ -66,7 +68,7 @@ export const PUT: APIRoute = async ({ request, cookies, locals }) => {
       updates.username = newUsername.trim();
     }
 
-    // Actualizar Password
+    // Actualizar contraseña si se proporciona
     if (newPassword) {
       if (newPassword.length < 6) {
         return new Response(
@@ -103,8 +105,8 @@ export const PUT: APIRoute = async ({ request, cookies, locals }) => {
       { status: 200 },
     );
   } catch (error) {
-    console.error("Error updating profile:", error);
-    return new Response(JSON.stringify({ error: "Error interno" }), {
+    console.error("Error al actualizar perfil:", error);
+    return new Response(JSON.stringify({ error: "Error interno del servidor" }), {
       status: 500,
     });
   }

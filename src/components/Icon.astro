@@ -1,5 +1,9 @@
 ---
 export interface Props {
+  /**
+   * Nombre del icono a mostrar.
+   * Debe coincidir con las claves del objeto 'icons' abajo.
+   */
   name:
     | "search"
     | "database"
@@ -20,6 +24,9 @@ export interface Props {
     | "upload"
     | "download"
     | "logout";
+  /**
+   * Clases CSS adicionales para el elemento SVG.
+   */
   class?: string;
 }
 

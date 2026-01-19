@@ -7,7 +7,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const user = locals.user;
 
   if (!user) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+    return new Response(JSON.stringify({ error: "No autorizado" }), {
       status: 401,
     });
   }
@@ -17,7 +17,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const file = formData.get("file") as File;
 
     if (!file) {
-      return new Response(JSON.stringify({ error: "No file uploaded" }), {
+      return new Response(JSON.stringify({ error: "No se subió ningún archivo" }), {
         status: 400,
       });
     }
@@ -51,6 +51,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       return result;
     };
 
+    // Procesar cabeceras
     const headers = parseCSVLine(lines[0]).map((h) => h.toLowerCase());
 
     const gdIndex = headers.indexOf("gd");
@@ -61,7 +62,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     if (gdIndex === -1 || nameIndex === -1) {
       return new Response(
-        JSON.stringify({ error: "CSV must contain 'gd' and 'name' columns" }),
+        JSON.stringify({ error: "El CSV debe contener columnas 'gd' y 'name'" }),
         { status: 400 },
       );
     }
@@ -69,6 +70,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     let successCount = 0;
     let errorCount = 0;
 
+    // Procesar cada línea del CSV
     for (let i = 1; i < lines.length; i++) {
       const line = lines[i].trim();
       if (!line) continue;
@@ -81,7 +83,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
         quantity = parseInt(values[quantityIndex]) || 1;
       }
 
-      // Búsqueda por campos combinados
+      // Búsqueda por campos combinados para identificar la carta exacta
       const gd = values[gdIndex];
       const name = values[nameIndex];
       const rarity = rarityIndex !== -1 ? values[rarityIndex] : undefined;
@@ -111,7 +113,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       }
 
       if (cardId) {
-        // Upsert
+        // Upsert: Actualizar cantidad si existe, crear si no
         const existing = await prisma.user_collections.findUnique({
           where: {
             user_id_card_id: {
@@ -148,7 +150,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     return new Response(
       JSON.stringify({
-        message: "Import complete",
+        message: "Importación completada",
         success: successCount,
         errors: errorCount,
       }),
@@ -156,7 +158,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     );
   } catch (e) {
     console.error(e);
-    return new Response(JSON.stringify({ error: "Import failed" }), {
+    return new Response(JSON.stringify({ error: "Falló la importación" }), {
       status: 500,
     });
   }

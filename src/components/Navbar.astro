@@ -80,19 +80,22 @@ import Icon from "./Icon.astro";
   </div>
 
   <script>
+    // Referencias a elementos del DOM
     const toggle = document.getElementById("menu-toggle");
     const menu = document.getElementById("menu");
     const spans = toggle?.querySelectorAll("span");
 
+    // Manejar el clic en el botón de hamburguesa
     if (toggle && menu && spans) {
       toggle.addEventListener("click", () => {
         const isHidden = menu.classList.contains("hidden");
 
         if (isHidden) {
+          // Mostrar menú
           menu.classList.remove("hidden");
           menu.classList.add("flex", "animate-slide-up");
 
-          // Animación
+          // Animación de transformar hamburguesa a X
           spans[0].classList.add(
             "rotate-45",
             "translate-x-px",
@@ -105,6 +108,7 @@ import Icon from "./Icon.astro";
             "-translate-y-[1px]",
           );
         } else {
+          // Ocultar menú
           menu.classList.add("hidden");
           menu.classList.remove("flex", "animate-slide-up");
 

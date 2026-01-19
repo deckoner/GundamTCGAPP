@@ -7,10 +7,12 @@ export const GET: APIRoute = async ({ request }) => {
   const imageUrl = url.searchParams.get("url");
 
   if (!imageUrl) {
-    return new Response("Missing URL parameter", { status: 400 });
+    return new Response("Falta el parámetro URL", { status: 400 });
   }
 
   try {
+    // Realizar la petición a la imagen externa
+    // Esto es necesario para evitar problemas de CORS y para ocultar la fuente real si fuera necesario
     const response = await fetch(imageUrl);
 
     if (!response.ok) {

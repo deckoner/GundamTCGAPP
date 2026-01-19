@@ -89,7 +89,7 @@ const error = Astro.url.searchParams.get("error");
     </form>
 
     <script>
-      // Validación extra en el cliente
+      // Identificar el formulario de login y sus campos
       const form = document.getElementById(
         "loginForm",
       ) as HTMLFormElement | null;
@@ -98,13 +98,14 @@ const error = Astro.url.searchParams.get("error");
         const usernameInput = form.querySelector<HTMLInputElement>("#username");
         const passwordInput = form.querySelector<HTMLInputElement>("#password");
 
+        // Interceptar el envío del formulario para validaciones del lado del cliente
         form.addEventListener("submit", (e) => {
           if (!usernameInput || !passwordInput) return;
 
           const username = usernameInput.value.trim();
           const password = passwordInput.value;
 
-          // Validación de longitud
+          // Validación de longitud máxima
           if (username.length > 100) {
             e.preventDefault();
             alert("El nombre de usuario no puede superar los 100 caracteres.");
@@ -117,7 +118,7 @@ const error = Astro.url.searchParams.get("error");
             return;
           }
 
-          // Validación de formato de usuario
+          // Validación de caracteres permitidos en el nombre de usuario
           if (!/^[A-Za-z0-9_]+$/.test(username)) {
             e.preventDefault();
             alert(
@@ -126,7 +127,7 @@ const error = Astro.url.searchParams.get("error");
             return;
           }
 
-          // Evitar envío repetido
+          // Deshabilitar botón para evitar envío doble
           const submitButton = form.querySelector<HTMLButtonElement>("button");
           if (submitButton) submitButton.disabled = true;
         });

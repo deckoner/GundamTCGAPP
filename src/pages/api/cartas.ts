@@ -2,10 +2,16 @@ export const prerender = false;
 
 import { fetchCartas } from "../../utils/cartasLogic";
 
+/**
+ * Endpoint API para buscar cartas.
+ * Recibe parámetros de consulta (query params) y devuelve resultados paginados.
+ */
 export async function GET({ url, locals }: { url: URL; locals: App.Locals }) {
+  // Parseo de parámetros basicos
   const page = parseInt(url.searchParams.get("page") || "1", 10);
-
   const nombre = (url.searchParams.get("nombre") || "").toLowerCase();
+  
+  // Parseo de filtros opcionales
   const tipo = url.searchParams.get("tipo")
     ? Number(url.searchParams.get("tipo"))
     : null;
@@ -25,13 +31,18 @@ export async function GET({ url, locals }: { url: URL; locals: App.Locals }) {
   const level = url.searchParams.get("level")
     ? Number(url.searchParams.get("level"))
     : null;
+  
+  // Parseo de listas (colores, tags, traits)
   const colores = new Set(url.searchParams.getAll("colores").map(Number));
   const tags = new Set(url.searchParams.getAll("tags").map(Number));
   const traits = new Set(url.searchParams.getAll("traits").map(Number));
+  
+  // Filtros booleanos
   const altArt = url.searchParams.get("altArt") === "true";
   const ownedOnly = url.searchParams.get("ownedOnly") === "true";
 
   try {
+    // Delegar lógica de búsqueda a la utilidad
     const result = await fetchCartas({
       page,
       nombre,
@@ -55,7 +66,7 @@ export async function GET({ url, locals }: { url: URL; locals: App.Locals }) {
       headers: { "Content-Type": "application/json" },
     });
   } catch (error) {
-    return new Response(JSON.stringify({ error: "Error fetching cards" }), {
+    return new Response(JSON.stringify({ error: "Error al buscar cartas" }), {
       status: 500,
     });
   }

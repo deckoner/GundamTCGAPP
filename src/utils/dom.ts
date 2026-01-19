@@ -5,6 +5,7 @@
  */
 export const debounce = (fn: Function, wait = 300) => {
   let t: ReturnType<typeof setTimeout>;
+
   return (...args: any[]) => {
     clearTimeout(t);
     t = setTimeout(() => fn(...args), wait);
@@ -22,11 +23,19 @@ export const crearElemento = (
   tag: string,
   styles: Partial<CSSStyleDeclaration> = {},
   text: string = "",
-  onClick?: () => void,
+  onClick?: () => void
 ): HTMLElement => {
   const el = document.createElement(tag);
+
   Object.assign(el.style, styles);
-  if (text) el.textContent = text;
-  if (onClick) el.addEventListener("click", onClick);
+
+  if (text) {
+    el.textContent = text;
+  }
+
+  if (onClick) {
+    el.addEventListener("click", onClick);
+  }
+
   return el;
 };

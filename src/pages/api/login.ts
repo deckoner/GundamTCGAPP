@@ -21,13 +21,13 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
       return redirect("/login?error=" + encodeURIComponent("Datos inválidos."));
     }
 
-    // Buscar usuario
+    // Buscar usuario en la base de datos
     const user = await prisma.users.findUnique({
       where: { username },
       select: { id: true, username: true, password_hash: true },
     });
 
-    // Comparación aunque el usuario no exista
+    // Comparación segura (siempre se ejecuta para mitigar ataques de tiempo)
     const hashToCompare =
       user?.password_hash ?? "$2a$10$abcdefghijklmnopqrstuv";
     const valid = await bcrypt.compare(password, hashToCompare);
@@ -41,24 +41,24 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
 
     const secret = import.meta.env.JWT_SECRET;
     if (!secret) {
-      console.error("JWT_SECRET no definido");
+      console.error("JWT_SECRET no definido en variables de entorno");
       return redirect(
         "/login?error=" + encodeURIComponent("Error interno del servidor."),
       );
     }
 
-    // Generar token JWT
+    // Generar token JWT firmado
     const token = jwt.sign({ id: user.id, username: user.username }, secret, {
       expiresIn: "7d",
       algorithm: "HS256",
     });
 
-    // Configurar cookie de sesión
+    // Configurar cookie de sesión segura
     cookies.set("session", token, {
       path: "/",
       httpOnly: true,
       sameSite: "strict",
-      secure: import.meta.env.PROD,
+      secure: import.meta.env.PROD, // Solo secure en producción
       maxAge: 60 * 60 * 24 * 7, // 1 semana
     });
 

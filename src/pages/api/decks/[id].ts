@@ -2,6 +2,9 @@ export const prerender = false;
 
 import prisma from "../../../utils/prismaClient";
 
+/**
+ * Obtener un deck específico
+ */
 export async function GET({
   params,
   locals,
@@ -10,7 +13,7 @@ export async function GET({
   locals: App.Locals;
 }) {
   if (!locals.user) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+    return new Response(JSON.stringify({ error: "No autorizado" }), {
       status: 401,
     });
   }
@@ -18,7 +21,7 @@ export async function GET({
   const deckId = parseInt(params.id);
 
   if (isNaN(deckId)) {
-    return new Response(JSON.stringify({ error: "Invalid deck ID" }), {
+    return new Response(JSON.stringify({ error: "ID de deck inválido" }), {
       status: 400,
     });
   }
@@ -36,13 +39,14 @@ export async function GET({
     });
 
     if (!deck) {
-      return new Response(JSON.stringify({ error: "Deck not found" }), {
+      return new Response(JSON.stringify({ error: "Deck no encontrado" }), {
         status: 404,
       });
     }
 
+    // Verificar propiedad
     if (deck.user_id !== locals.user.id) {
-      return new Response(JSON.stringify({ error: "Forbidden" }), {
+      return new Response(JSON.stringify({ error: "Prohibido" }), {
         status: 403,
       });
     }
@@ -52,13 +56,16 @@ export async function GET({
       headers: { "Content-Type": "application/json" },
     });
   } catch (error) {
-    console.error("Error fetching deck:", error);
-    return new Response(JSON.stringify({ error: "Error fetching deck" }), {
+    console.error("Error obteniendo deck:", error);
+    return new Response(JSON.stringify({ error: "Error obteniendo deck" }), {
       status: 500,
     });
   }
 }
 
+/**
+ * Actualizar un deck existente
+ */
 export async function PUT({
   params,
   request,
@@ -69,14 +76,14 @@ export async function PUT({
   locals: App.Locals;
 }) {
   if (!locals.user) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+    return new Response(JSON.stringify({ error: "No autorizado" }), {
       status: 401,
     });
   }
 
   const deckId = parseInt(params.id);
   if (isNaN(deckId)) {
-    return new Response(JSON.stringify({ error: "Invalid deck ID" }), {
+    return new Response(JSON.stringify({ error: "ID de deck inválido" }), {
       status: 400,
     });
   }
@@ -85,24 +92,24 @@ export async function PUT({
     const body = await request.json();
     const { name, cards } = body;
 
-    // Verificar propiedad
+    // Verificar existencia y propiedad
     const existingDeck = await prisma.decks.findUnique({
       where: { id: deckId },
     });
 
     if (!existingDeck) {
-      return new Response(JSON.stringify({ error: "Deck not found" }), {
+      return new Response(JSON.stringify({ error: "Deck no encontrado" }), {
         status: 404,
       });
     }
 
     if (existingDeck.user_id !== locals.user.id) {
-      return new Response(JSON.stringify({ error: "Forbidden" }), {
+      return new Response(JSON.stringify({ error: "Prohibido" }), {
         status: 403,
       });
     }
 
-    // Actualizar deck
+    // Transacción para actualización atómica
     const updatedDeck = await prisma.$transaction(async (tx) => {
       // Actualizar nombre si se proporciona
       if (name) {
@@ -114,7 +121,7 @@ export async function PUT({
 
       // Actualizar cartas si se proporcionan
       if (cards) {
-        // Eliminar cartas existentes
+        // Eliminar cartas anteriores
         await tx.deck_cards.deleteMany({
           where: { deck_id: deckId },
         });
@@ -131,6 +138,7 @@ export async function PUT({
         }
       }
 
+      // Devolver deck actualizado
       return tx.decks.findUnique({
         where: { id: deckId },
         include: {
@@ -148,13 +156,16 @@ export async function PUT({
       headers: { "Content-Type": "application/json" },
     });
   } catch (error) {
-    console.error("Error updating deck:", error);
-    return new Response(JSON.stringify({ error: "Error updating deck" }), {
+    console.error("Error actualizando deck:", error);
+    return new Response(JSON.stringify({ error: "Error actualizando deck" }), {
       status: 500,
     });
   }
 }
 
+/**
+ * Eliminar un deck
+ */
 export async function DELETE({
   params,
   locals,
@@ -163,14 +174,14 @@ export async function DELETE({
   locals: App.Locals;
 }) {
   if (!locals.user) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+    return new Response(JSON.stringify({ error: "No autorizado" }), {
       status: 401,
     });
   }
 
   const deckId = parseInt(params.id);
   if (isNaN(deckId)) {
-    return new Response(JSON.stringify({ error: "Invalid deck ID" }), {
+    return new Response(JSON.stringify({ error: "ID de deck inválido" }), {
       status: 400,
     });
   }
@@ -182,13 +193,13 @@ export async function DELETE({
     });
 
     if (!existingDeck) {
-      return new Response(JSON.stringify({ error: "Deck not found" }), {
+      return new Response(JSON.stringify({ error: "Deck no encontrado" }), {
         status: 404,
       });
     }
 
     if (existingDeck.user_id !== locals.user.id) {
-      return new Response(JSON.stringify({ error: "Forbidden" }), {
+      return new Response(JSON.stringify({ error: "Prohibido" }), {
         status: 403,
       });
     }
@@ -202,8 +213,8 @@ export async function DELETE({
       headers: { "Content-Type": "application/json" },
     });
   } catch (error) {
-    console.error("Error deleting deck:", error);
-    return new Response(JSON.stringify({ error: "Error deleting deck" }), {
+    console.error("Error eliminando deck:", error);
+    return new Response(JSON.stringify({ error: "Error eliminando deck" }), {
       status: 500,
     });
   }

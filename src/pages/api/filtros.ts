@@ -49,9 +49,14 @@ let cached: CachedData | null = null;
 let cacheTimestamp = 0;
 const CACHE_TTL = 60 * 60 * 1000 * 6; // 6 horas
 
+/**
+ * Obtiene los datos necesarios para popular los filtros.
+ * Utiliza caché en memoria para optimizar rendimiento.
+ */
 export async function getFiltrosData() {
   const now = Date.now();
 
+  // Si no hay caché o expiró, consultar BD
   if (!cached || now - cacheTimestamp > CACHE_TTL) {
     const [
       colores,
@@ -72,6 +77,8 @@ export async function getFiltrosData() {
       prisma.animes.findMany({ select: { id: true, anime: true } }),
       prisma.belongs_gd.findMany({ select: { id: true, belongs_gd: true } }),
       prisma.links.findMany({ select: { id: true, link: true } }),
+      
+      // Obtener valores únicos para selects
       prisma.cards.findMany({
         select: { rarity: true },
         distinct: ["rarity"],

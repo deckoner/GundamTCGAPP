@@ -199,16 +199,23 @@ const autocompleteData = JSON.stringify({
     trait?: string;
   }
 
+  // Referencias globales a elementos del DOM
   let selects: Record<string, HTMLSelectElement> = {};
   let inputs: Record<string, HTMLInputElement> = {};
   let listas: Record<string, HTMLElement> = {};
   let contenedores: Record<string, HTMLElement> = {};
+
+  // Estado de elementos seleccionados (arrays de IDs)
   let seleccionados = {
     colores: [] as number[],
     tags: [] as number[],
     traits: [] as number[],
   };
 
+  /**
+   * Inicializa las referencias a los elementos del DOM.
+   * Se ejecuta cada vez que la página carga o Astro hace swap.
+   */
   const initDOM = () => {
     selects = {
       tipo: document.getElementById("filtro-tipo") as HTMLSelectElement,
@@ -244,6 +251,11 @@ const autocompleteData = JSON.stringify({
     };
   };
 
+  /**
+   * Crea un chip visual para un filtro seleccionado.
+   * @param text Texto a mostrar en el chip
+   * @param onClick Función a ejecutar al hacer clic en el chip (para eliminarlo)
+   */
   const crearChip = (text: string, onClick: () => void) => {
     return crearElemento(
       "span",
@@ -261,8 +273,14 @@ const autocompleteData = JSON.stringify({
     );
   };
 
+  /**
+   * Recopila todos los filtros activos y emite el evento 'aplicar-filtros'.
+   * Usa debounce para evitar múltiples llamadas seguidas.
+   */
   const emitirFiltros = debounce(() => {
     if (!inputs.nombre) return;
+
+    // Objeto con todos los filtros actuales
     const filtrosSeleccionados = {
       nombre: inputs.nombre.value.trim(),
       tipo: selects.tipo?.value || "",
@@ -278,6 +296,8 @@ const autocompleteData = JSON.stringify({
       altArt: inputs.altArt?.checked || false,
       ownedOnly: inputs.ownedOnly ? inputs.ownedOnly.checked : false,
     };
+
+    // Despachar evento para que otros componentes (ej: lista de cartas) reaccionen
     window.dispatchEvent(
       new CustomEvent("aplicar-filtros", { detail: filtrosSeleccionados }),
     );
@@ -285,6 +305,14 @@ const autocompleteData = JSON.stringify({
 
   const aplicarFiltros = () => emitirFiltros();
 
+  /**
+   * Configura la lógica de autocompletado para un campo específico.
+   * @param inputEl Input de texto donde el usuario escribe
+   * @param listEl Contenedor de la lista de sugerencias
+   * @param containerEl Contenedor donde se muestran los chips seleccionados
+   * @param items Lista de elementos disponibles para filtrar
+   * @param selectedArray Array de referencias para almacenar los IDs seleccionados
+   */
   const setupAutocomplete = (
     inputEl: HTMLInputElement,
     listEl: HTMLElement,
@@ -294,8 +322,11 @@ const autocompleteData = JSON.stringify({
   ) => {
     if (!inputEl || !listEl || !containerEl) return;
 
+    // Función para renderizar la lista de sugerencias
     const renderList = (filter = "") => {
       listEl.innerHTML = "";
+
+      // Filtrar items por nombre
       const filtered = filter
         ? items.filter((i) =>
             i.name.toLowerCase().includes(filter.toLowerCase()),
@@ -314,6 +345,7 @@ const autocompleteData = JSON.stringify({
           item.name,
         );
 
+        // Hover effects
         div.addEventListener(
           "mouseenter",
           () => (div.style.backgroundColor = "var(--color-accent-hover)"),
@@ -324,19 +356,22 @@ const autocompleteData = JSON.stringify({
             (div.style.backgroundColor = "var(--color-background-secondary)"),
         );
 
+        // Selección de un item
         div.addEventListener("click", () => {
           const idx = selectedArray.indexOf(item.id);
+
           if (idx !== -1) {
-            // Ya seleccionado a remover
+            // Si ya estaba seleccionado, removerlo
             selectedArray.splice(idx, 1);
             Array.from(containerEl.children)
               .find((c) => c.textContent === item.name)
               ?.remove();
           } else {
-            // Nuevo a agregar
+            // Si es nuevo, agregarlo
             selectedArray.push(item.id);
             containerEl.appendChild(
               crearChip(item.name, () => {
+                // Lógica para eliminar el chip al hacer clic en él
                 const i = selectedArray.indexOf(item.id);
                 if (i !== -1) {
                   selectedArray.splice(i, 1);
@@ -348,6 +383,7 @@ const autocompleteData = JSON.stringify({
               }),
             );
           }
+
           inputEl.value = "";
           listEl.style.display = "none";
           aplicarFiltros();
@@ -359,34 +395,40 @@ const autocompleteData = JSON.stringify({
       listEl.style.display = filtered.length ? "block" : "none";
     };
 
+    // Event listeners para el input
     inputEl.addEventListener("input", () => renderList(inputEl.value));
     inputEl.addEventListener("focus", () => renderList(inputEl.value));
     inputEl.addEventListener("keydown", (e) => {
+      // Permitir seleccionar el primer elemento con Enter
       if (e.key === "Enter") {
         e.preventDefault();
         (listEl.firstChild as HTMLElement)?.click();
       }
     });
 
+    // Cerrar la lista si se hace clic fuera
     document.addEventListener("click", (ev) => {
       if (!listEl.contains(ev.target as Node) && ev.target !== inputEl)
         listEl.style.display = "none";
     });
   };
 
+  /**
+   * inicialización principal del componente
+   */
   const initFiltros = () => {
     try {
       initDOM();
 
       if (!inputs.nombre) return;
 
-      // Recuperar datos del atributo data-autocomplete
+      // Recuperar datos serializados del HTML (progressive enhancement)
       const container = document.getElementById("filtros-container");
       if (!container || !container.dataset.autocomplete) return;
 
       const data = JSON.parse(container.dataset.autocomplete);
 
-      // Normalizar datos para el autocompletado
+      // Normalizar datos para las funciones de autocompletado
       const colores = data.colores.map((c: any) => ({
         id: c.id,
         name: c.color,
@@ -397,6 +439,7 @@ const autocompleteData = JSON.stringify({
         name: t.trait,
       }));
 
+      // Configurar autocompletado para colores, tags y traits
       setupAutocomplete(
         inputs.colores,
         listas.colores,
@@ -419,7 +462,7 @@ const autocompleteData = JSON.stringify({
         seleccionados.traits,
       );
 
-      // Eventos
+      // Listener general para selects e inputs simples
       [
         ...Object.values(selects),
         inputs.nombre,
@@ -436,10 +479,11 @@ const autocompleteData = JSON.stringify({
           el.addEventListener(event, aplicarFiltros);
         });
     } catch (err) {
-      console.error("Error initFiltros", err);
+      console.error("Error inicializando filtros:", err);
     }
   };
 
+  // Manejar ciclo de vida de Astro (View Transitions)
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", initFiltros);
   } else {

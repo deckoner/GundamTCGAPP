@@ -3,9 +3,12 @@ export const prerender = false;
 import prisma from "../../../utils/prismaClient";
 import { EXCLUDED_DECK_TYPES } from "../../../constants/deckRules";
 
+/**
+ * Obtener todos los decks del usuario actual
+ */
 export async function GET({ locals }: { locals: App.Locals }) {
   if (!locals.user) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+    return new Response(JSON.stringify({ error: "No autorizado" }), {
       status: 401,
     });
   }
@@ -22,6 +25,7 @@ export async function GET({ locals }: { locals: App.Locals }) {
       },
     });
 
+    // Obtener tipos para mapeo posterior
     const types = await prisma.types.findMany();
     const typesMap = types.reduce(
       (acc, t) => {
@@ -31,7 +35,7 @@ export async function GET({ locals }: { locals: App.Locals }) {
       {} as Record<number, string>,
     );
 
-    // Calcular estadísticas para cada deck
+    // Calcular estadísticas adicionales para cada deck en tiempo real
     const decksWithStats = decks.map((deck) => {
       const totalCards = deck.deck_cards
         .filter((dc) => {
@@ -40,6 +44,7 @@ export async function GET({ locals }: { locals: App.Locals }) {
             .filter(Boolean)
             .map(Number);
           // Verificar si alguno de los tipos de la carta es especial
+          // Estos no cuentan para el límite principal de 50 cartas
           const isSpecial = cardTypeIds.some((tid) =>
             EXCLUDED_DECK_TYPES.includes(typesMap[tid] || ""),
           );
@@ -57,13 +62,16 @@ export async function GET({ locals }: { locals: App.Locals }) {
       headers: { "Content-Type": "application/json" },
     });
   } catch (error) {
-    console.error("Error fetching decks:", error);
-    return new Response(JSON.stringify({ error: "Error fetching decks" }), {
+    console.error("Error obteniendo decks:", error);
+    return new Response(JSON.stringify({ error: "Error obteniendo decks" }), {
       status: 500,
     });
   }
 }
 
+/**
+ * Crear un nuevo deck
+ */
 export async function POST({
   request,
   locals,
@@ -72,7 +80,7 @@ export async function POST({
   locals: App.Locals;
 }) {
   if (!locals.user) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+    return new Response(JSON.stringify({ error: "No autorizado" }), {
       status: 401,
     });
   }
@@ -82,7 +90,7 @@ export async function POST({
     const { name } = body;
 
     if (!name) {
-      return new Response(JSON.stringify({ error: "Name is required" }), {
+      return new Response(JSON.stringify({ error: "El nombre es requerido" }), {
         status: 400,
       });
     }
@@ -99,8 +107,8 @@ export async function POST({
       headers: { "Content-Type": "application/json" },
     });
   } catch (error) {
-    console.error("Error creating deck:", error);
-    return new Response(JSON.stringify({ error: "Error creating deck" }), {
+    console.error("Error creando deck:", error);
+    return new Response(JSON.stringify({ error: "Error creando deck" }), {
       status: 500,
     });
   }
