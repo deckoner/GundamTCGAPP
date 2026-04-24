@@ -4,8 +4,10 @@ export const prerender = true;
 import MainLayout from "../../layouts/MainLayout.astro";
 import prisma from "../../utils/prismaClient";
 
-// Generar rutas estáticas para todas las cartas con alt_art = false
+// Generar rutas estáticas para todas las cartas principales (no alternas)
+// Esto permite SEO optimo y carga instantánea
 export async function getStaticPaths() {
+  // Obtener todas las cartas base
   const cartas = await prisma.cards.findMany({
     where: { alt_art: false },
     select: {
@@ -28,6 +30,7 @@ export async function getStaticPaths() {
     },
   });
 
+  // Obtener cartas de arte alternativo para asociarlas
   const altArts = await prisma.cards.findMany({
     where: { alt_art: true },
     select: {
@@ -37,10 +40,12 @@ export async function getStaticPaths() {
     },
   });
 
+  // Desconexión de Prisma tras la compilación
   await prisma.$disconnect();
 
   const excludedGDIds = [15, 35, 42];
 
+  // Mapear cartas base y buscar sus versiones alternas
   const cartasConAlt = cartas.map((carta) => {
     const prefix = carta.img ?? "";
     const altImgs = altArts
@@ -54,6 +59,7 @@ export async function getStaticPaths() {
     };
   });
 
+  // Retornar params y props para cada página generada
   return cartasConAlt.map((carta) => ({
     params: { gd: carta.gd },
     props: { carta },

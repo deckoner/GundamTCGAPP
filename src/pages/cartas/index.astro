@@ -109,16 +109,20 @@ const { cartas, hasMore, total } = initialData;
     let hasMore = container?.dataset.hasMore === "true";
     let filtrosActuales = { altArt: false };
     let isLoading = false;
-    let currentController = null;
+    let currentController: AbortController | null = null;
 
-    function renderCard(carta) {
+    /**
+     * Crea el elemento HTML para una carta individual.
+     * @param carta Objeto con datos de la carta
+     */
+    function renderCard(carta: any) {
       const article = document.createElement("article");
       article.className =
         "group relative flex flex-col overflow-hidden rounded-xl border border-white/5 bg-background-secondary shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-glow hover:border-accent/30";
 
       const tagsHTML = carta.card_tags
         .map(
-          (ct) => `
+          (ct: any) => `
             <span class="rounded-full border border-accent/30 bg-accent/10 px-2 py-0.5 text-[10px] font-semibold text-accent transition-colors group-hover:border-accent/50 group-hover:bg-accent/20">
               ${ct.tag?.tag ?? ""}
             </span>
@@ -157,6 +161,11 @@ const { cartas, hasMore, total } = initialData;
       return article;
     }
 
+    /**
+     * Carga más cartas desde la API.
+     * @param filtros Filtros a aplicar
+     * @param reset Si es true, limpia el contenedor antes de añadir nuevas cartas
+     */
     async function loadCartas(filtros = {}, reset = false) {
       if (!hasMore && !reset) return;
       if (isLoading) return;
@@ -164,6 +173,7 @@ const { cartas, hasMore, total } = initialData;
       isLoading = true;
       if (loading) loading.classList.remove("hidden");
 
+      // Cancelar petición anterior si existe (debounce implícito)
       if (currentController) {
         try {
           currentController.abort();
@@ -185,7 +195,7 @@ const { cartas, hasMore, total } = initialData;
           signal: currentController.signal,
         });
 
-        if (!res.ok) throw new Error("Network response was not ok");
+        if (!res.ok) throw new Error("Error en la respuesta de red");
 
         const data = await res.json();
 
@@ -194,7 +204,7 @@ const { cartas, hasMore, total } = initialData;
         }
 
         if (container) {
-          data.cartas.forEach((carta) => {
+          data.cartas.forEach((carta: any) => {
             container.appendChild(renderCard(carta));
           });
         }
@@ -211,6 +221,7 @@ const { cartas, hasMore, total } = initialData;
       }
     }
 
+    // Scroll infinito
     window.addEventListener("scroll", () => {
       if (
         window.innerHeight + window.scrollY >=
@@ -220,6 +231,7 @@ const { cartas, hasMore, total } = initialData;
       }
     });
 
+    // Escuchar eventos de cambio de filtros
     window.addEventListener("aplicar-filtros", (e) => {
       if (currentController) {
         try {
@@ -235,6 +247,5 @@ const { cartas, hasMore, total } = initialData;
       isLoading = false;
       loadCartas(filtrosActuales, true);
     });
-
   </script>
 </MainLayout>

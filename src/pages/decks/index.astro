@@ -251,6 +251,7 @@ if (!user) {
     import Chart from "chart.js/auto";
     import * as htmlToImage from "html-to-image";
 
+    // Referencias a elementos del DOM
     const decksGrid = document.getElementById("decks-grid");
     const btnCreateDeck = document.getElementById("btn-create-deck");
     const createDeckModal = document.getElementById("create-deck-modal");
@@ -275,7 +276,9 @@ if (!user) {
     let costChartInstance: Chart | null = null;
     let levelChartInstance: Chart | null = null;
 
-    // Cargar decks
+    /**
+     * Carga la lista de decks del usuario desde la API.
+     */
     async function loadDecks() {
       try {
         const res = await fetch("/api/decks");
@@ -297,6 +300,7 @@ if (!user) {
           return;
         }
 
+        // Renderiza una tarjeta de deck individual
         function createDeckCard(deck: Deck) {
           const isValid = deck.totalCards === 50;
           const cardCountClass = isValid
@@ -342,7 +346,7 @@ if (!user) {
           decksGrid.appendChild(createDeckCard(deck));
         });
 
-        // Aviso de eliminacion de deck
+        // Configurar listeners para botones de eliminar
         document.querySelectorAll(".btn-delete-deck").forEach((btn) => {
           btn.addEventListener("click", async (e) => {
             e.stopPropagation();
@@ -372,7 +376,7 @@ if (!user) {
       }
     }
 
-    // Lógica del Modal para Crear Deck
+    // --- Lógica del Modal para Crear Deck ---
     const openModal = () => {
       if (!createDeckModal || !deckNameInput) return;
       createDeckModal.classList.remove("hidden");
@@ -424,7 +428,7 @@ if (!user) {
       });
     }
 
-    // Logica del modal
+    // --- Lógica del Modal de Previsualización ---
 
     function openPreviewModal(deckId: number) {
       if (!previewModal) return;
@@ -437,7 +441,7 @@ if (!user) {
       renderPreviewCharts(deck);
       renderPreviewList(deck);
 
-      // Mostrar Modal
+      // Mostrar Modal y deshabilitar scroll body
       previewModal.classList.remove("hidden");
       previewModal.classList.add("flex");
       document.body.style.overflow = "hidden";
@@ -458,7 +462,7 @@ if (!user) {
       });
     }
 
-    // Lógica de Descarga de Imagen
+    // --- Lógica de Descarga de Imagen ---
     if (btnDownloadImage) {
       btnDownloadImage.addEventListener("click", async () => {
         if (!previewContent) return;
@@ -493,12 +497,13 @@ if (!user) {
       });
     }
 
+    // --- Renderizado de Gráficos de Previsualización ---
     function renderPreviewCharts(deck: any) {
       const isMS = (c: any) => {
         return c.level !== undefined && c.level !== null;
       };
 
-      // Parsear cartas
+      // Parsear y normalizar cartas
       const cards = deck.deck_cards.map((dc: any) => ({
         ...dc.cards,
         quantity: dc.quantity,
@@ -507,7 +512,7 @@ if (!user) {
         (c: any) => c.cost !== null && c.level !== null,
       );
 
-      // Distribución de Coste
+      // Calcular Distribución de Coste
       const costs: Record<number, number> = {};
       units.forEach((c: any) => {
         const cost = c.cost ?? 0;
@@ -518,7 +523,7 @@ if (!user) {
       );
       const costData = costLabels.map((l) => costs[Number(l)]);
 
-      // Distribución de Nivel
+      // Calcular Distribución de Nivel
       const levels: Record<number, number> = {};
       units.forEach((c: any) => {
         if (c.level !== null) {
@@ -531,11 +536,11 @@ if (!user) {
       );
       const levelData = levelLabels.map((l) => levels[Number(l)]);
 
-      // Destruir gráficos antiguos
+      // Destruir gráficos antiguos si existen
       if (costChartInstance) costChartInstance.destroy();
       if (levelChartInstance) levelChartInstance.destroy();
 
-      // Opciones del gráfico
+      // Configuración común de gráficos
       const options = {
         responsive: true,
         maintainAspectRatio: false,
@@ -551,7 +556,7 @@ if (!user) {
             ticks: { color: "#aaa", font: { size: 10 } },
           },
         },
-        animation: { duration: 0 }, // Desactivar animación para renderizado inmediato (¿mejor para captura?)
+        animation: { duration: 0 }, // Desactivar animación para evitar artefactos en la captura de imagen
       };
 
       // Renderizar Gráfico de Coste
@@ -567,7 +572,7 @@ if (!user) {
               {
                 label: "Coste",
                 data: costData,
-                backgroundColor: "#fbbf24", // Amber/Gold like general Gundam yellow or Accent
+                backgroundColor: "#fbbf24", // Dorado
                 borderRadius: 2,
               },
             ],
@@ -589,7 +594,7 @@ if (!user) {
               {
                 label: "Nivel",
                 data: levelData,
-                backgroundColor: "#3b82f6", // Blue
+                backgroundColor: "#3b82f6", // Azul
                 borderRadius: 2,
               },
             ],
@@ -599,6 +604,7 @@ if (!user) {
       }
     }
 
+    // --- Renderizado de Lista de Cartas en Previsualización ---
     function renderPreviewList(deck: any) {
       if (!previewCardList || !previewResourceList) return;
       previewCardList.innerHTML = "";
@@ -610,9 +616,8 @@ if (!user) {
         quantity: dc.quantity,
       }));
 
-      // Heurística: Los recursos usualmente no tienen coste de juego o nivel en muchos TCGs, o podemos verificar rangos de ID/Nombres si se conocen.
-      // Por ahora, asumamos que las cartas sin 'cost' son recursos o cartas especiales.
-      // O si el coste está presente.
+      // Separar Deck Principal y Recursos
+      // Heurística: Las cartas con 'cost' definido son del deck principal
       const mainDeck = allCards.filter(
         (c: any) => c.cost !== null && c.cost !== undefined,
       );
@@ -632,18 +637,18 @@ if (!user) {
       // Ordenar Recursos: Nombre
       resourceDeck.sort((a: any, b: any) => a.name.localeCompare(b.name));
 
-      // Renderizar Principal
+      // Renderizar Principal en el DOM
       mainDeck.forEach((card: any) => {
         const div = createPreviewCard(card);
         previewCardList.appendChild(div);
       });
 
-      // Renderizar Recursos
+      // Renderizar Recursos en el DOM (si existen)
       if (resourceDeck.length > 0) {
         (
           previewResourceList.previousElementSibling as HTMLElement
         ).style.display = "block";
-        previewResourceList.style.display = "grid"; // Restaurar grid
+        previewResourceList.style.display = "grid";
         resourceDeck.forEach((card: any) => {
           const div = createPreviewCard(card);
           previewResourceList.appendChild(div);
@@ -660,10 +665,11 @@ if (!user) {
       const div = document.createElement("div");
       div.className = "flex flex-col gap-1 items-center group relative";
 
-      // Imagen
+      // Imagen (usando proxy para evitar CORS en html-to-image)
       const originalUrl = `https://img.deckoner.com/${card.img}.webp`;
       const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(originalUrl)}`;
 
+      // HTML en línea para asegurar estilos en la captura de pantalla
       div.innerHTML = `
             <div style="position: relative; width: 100%; border-radius: 0.5rem; overflow: hidden; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5); border: 1px solid rgba(255, 255, 255, 0.1); background-color: rgba(0, 0, 0, 0.5);">
                 <img src="${proxyUrl}" style="width: 100%; height: auto; display: block;" alt="${card.name}">

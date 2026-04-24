@@ -1,7 +1,5 @@
 import type { APIRoute } from "astro";
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import prisma from "../../../utils/prismaClient";
 
 export const GET: APIRoute = async ({ request, locals }) => {
   const user = locals.user;

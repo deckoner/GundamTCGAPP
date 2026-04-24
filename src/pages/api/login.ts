@@ -5,6 +5,10 @@ import prisma from "../../utils/prismaClient";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
+declare global {
+  var loginAttempts: Record<string, number> | undefined;
+}
+
 export const POST: APIRoute = async ({ request, cookies, redirect }) => {
   try {
     const formData = await request.formData();
@@ -21,6 +25,15 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
       return redirect("/login?error=" + encodeURIComponent("Datos inválidos."));
     }
 
+    // Rate Limiting
+    const ip = request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || "unknown";
+    if (global.loginAttempts && global.loginAttempts[ip] > 5) {
+       return redirect("/login?error=" + encodeURIComponent("Demasiados intentos. Intenta más tarde."));
+    }
+    
+    // Inicializar contador si no existe
+    if (!global.loginAttempts) global.loginAttempts = {};
+
     // Buscar usuario en la base de datos
     const user = await prisma.users.findUnique({
       where: { username },
@@ -28,16 +41,30 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
     });
 
     // Comparación segura (siempre se ejecuta para mitigar ataques de tiempo)
+    // Hash válido pre-calculado para 'invalid'
     const hashToCompare =
-      user?.password_hash ?? "$2a$10$abcdefghijklmnopqrstuv";
+      user?.password_hash ?? "$2a$10$X7.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1"; 
     const valid = await bcrypt.compare(password, hashToCompare);
 
     if (!valid || !user) {
+      // Incrementar intentos fallidos
+      global.loginAttempts[ip] = (global.loginAttempts[ip] || 0) + 1;
+      
+      // Resetear intentos después de 1 minuto
+      setTimeout(() => {
+          if (global.loginAttempts && global.loginAttempts[ip]) {
+              global.loginAttempts[ip] = Math.max(0, global.loginAttempts[ip] - 1);
+          }
+      }, 60000);
+
       return redirect(
         "/login?error=" +
           encodeURIComponent("Usuario o contraseña incorrecta."),
       );
     }
+    
+    // Limpiar intentos al loguearse correctamente
+    if (global.loginAttempts?.[ip]) delete global.loginAttempts[ip];
 
     const secret = import.meta.env.JWT_SECRET;
     if (!secret) {

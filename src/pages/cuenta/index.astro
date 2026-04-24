@@ -312,13 +312,14 @@ const totalCardsInDecks = decksStats.reduce((acc, deck) => {
           // Importar utilidad de toast
           import { showToast } from "../../utils/toast";
 
+          // Manejador genérico para actualizaciones de perfil
           async function handleUpdate(e: SubmitEvent, formId: string) {
             e.preventDefault();
             const form = e.target as HTMLFormElement;
             const formData = new FormData(form);
             const data = Object.fromEntries(formData.entries());
 
-            // Validar confirmación de contraseña
+            // Validar confirmación de contraseña en el cliente
             if (formId === "form-password") {
               const newPass = data.newPassword as string;
               const confirmPass = (
@@ -348,7 +349,7 @@ const totalCardsInDecks = decksStats.reduce((acc, deck) => {
               showToast(result.message, "success");
               form.reset();
 
-              // Redirigir al login después de un breve retraso
+              // Redirigir al login después de un breve retraso para forzar re-autenticación
               setTimeout(() => {
                 window.location.href =
                   "/login?message=" +

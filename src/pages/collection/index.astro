@@ -3,15 +3,13 @@ import MainLayout from "../../layouts/MainLayout.astro";
 import Filtros from "../../components/Filtros.astro";
 import Icon from "../../components/Icon.astro";
 import { fetchCartas } from "../../utils/cartasLogic";
-import { PrismaClient } from "@prisma/client";
+import prisma from "../../utils/prismaClient";
 
 const user = Astro.locals.user;
 
 if (!user) {
   return Astro.redirect("/login");
 }
-
-const prisma = new PrismaClient();
 
 // Fetch datos iniciales de la tarjeta (página 1)
 const initialData = await fetchCartas({ page: 1, altArt: true });
@@ -240,17 +238,24 @@ userCollection.forEach((item) => {
     import { showToast } from "../../utils/toast";
     import { getCardFlagsHTML } from "../../utils/cardUtils";
 
+    // Referencias DOM
     const container = document.getElementById("cartas-container");
     const loading = document.getElementById("loading");
-    let page = 2;
+
+    // Estado local
+    let page = 2; // La página 1 viene renderizada desde el servidor
     let hasMore = container?.dataset.hasMore === "true";
-    let filtrosActuales = { altArt: false };
+    let filtrosActuales = { altArt: true };
     let isLoading = false;
-    let currentController = null;
+    let currentController: AbortController | null = null;
     let collectionMap = JSON.parse(container?.dataset.collectionMap || "{}");
 
-    // Lógica de renderizado de cartas (Reutilizada y adaptada)
-    function renderCard(carta) {
+    /**
+     * Genera el HTML de una carta para la vista de colección.
+     * Incluye controles para aumentar/disminuir cantidad.
+     * @param carta Datos de la carta
+     */
+    function renderCard(carta: any) {
       const quantity = collectionMap[carta.id] || 0;
       const article = document.createElement("article");
       article.className =
@@ -290,7 +295,9 @@ userCollection.forEach((item) => {
       return article;
     }
 
-    // Lógica de scroll infinito y filtros
+    /**
+     * Carga de cartas con scroll infinito y filtros.
+     */
     async function loadCartas(filtros = {}, reset = false) {
       if (!hasMore && !reset) return;
       if (isLoading) return;
@@ -309,7 +316,7 @@ userCollection.forEach((item) => {
       Object.entries(filtros).forEach(([key, val]) => {
         if (Array.isArray(val)) {
           val.forEach((v) => params.append(key, v.toString()));
-        } else if (val || val === 0 || val === false) {
+        } else if (val || val === 0 || val === false || val === true) {
           params.append(key, val.toString());
         }
       });
@@ -318,18 +325,18 @@ userCollection.forEach((item) => {
         const res = await fetch(`/api/cartas?${params.toString()}`, {
           signal: currentController.signal,
         });
-        if (!res.ok) throw new Error("Network response was not ok");
+        if (!res.ok) throw new Error("Error en respuesta de red");
         const data = await res.json();
 
         if (reset && container) {
           container.innerHTML = "";
-          // Refrescar map de colección al resetear/recargar para asegurar sincronización
+          // Refrescar mapa de colección al resetear/recargar para asegurar sincronización
           const mapRes = await fetch("/api/collection?mode=map");
           if (mapRes.ok) collectionMap = await mapRes.json();
         }
 
         if (container) {
-          data.cartas.forEach((carta) => {
+          data.cartas.forEach((carta: any) => {
             container.appendChild(renderCard(carta));
           });
         }
@@ -345,6 +352,7 @@ userCollection.forEach((item) => {
       }
     }
 
+    // Listener de Scroll Infinito
     window.addEventListener("scroll", () => {
       if (
         window.innerHeight + window.scrollY >=
@@ -354,6 +362,7 @@ userCollection.forEach((item) => {
       }
     });
 
+    // Listener de Filtros
     window.addEventListener("aplicar-filtros", (e) => {
       if (currentController) {
         try {
@@ -369,125 +378,143 @@ userCollection.forEach((item) => {
       loadCartas(filtrosActuales, true);
     });
 
-    // Gestión de cantidades
-    container.addEventListener("click", async (e) => {
-      const btn = e.target.closest(".btn-update-qty");
-      if (!btn) return;
+    // Gestión de cantidades (Delegación de eventos)
+    if (container) {
+      container.addEventListener("click", async (e) => {
+        const target = e.target as HTMLElement;
+        const btn = target.closest(".btn-update-qty") as HTMLElement;
+        if (!btn) return;
 
-      const action = btn.dataset.action;
-      const cardId = parseInt(btn.dataset.id);
-      const qtySpan = document.getElementById(`qty-${cardId}`);
-      let currentQty = parseInt(qtySpan.textContent);
+        const action = btn.dataset.action;
+        const cardIdStr = btn.dataset.id;
+        if (!cardIdStr) return;
 
-      // Actualización de UI
-      if (action === "add") {
-        qtySpan.textContent = currentQty + 1;
-        collectionMap[cardId] = (collectionMap[cardId] || 0) + 1;
+        const cardId = parseInt(cardIdStr);
+        const qtySpan = document.getElementById(`qty-${cardId}`);
+        if (!qtySpan) return;
 
-        // Llamada API
-        fetch("/api/collection", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ cardId: cardId, quantity: 1 }),
-        }).catch((err) => {
-          console.error("Error adding card:", err);
-          // Revertir en caso de error
-          qtySpan.textContent = currentQty;
-          collectionMap[cardId] = currentQty;
-          showToast("Error al actualizar la colección", "error");
-        });
-      } else if (action === "remove" && currentQty > 0) {
-        const newQty = currentQty - 1;
-        qtySpan.textContent = newQty;
-        collectionMap[cardId] = Math.max(0, (collectionMap[cardId] || 0) - 1);
+        let currentQty = parseInt(qtySpan.textContent || "0");
 
-        // Si el filtro "Solo cartas optenidas" está activo y la cantidad llega a 0, eliminar la carta de la vista
-        if (filtrosActuales.ownedOnly && newQty === 0) {
-          const cardElement = btn.closest(".group");
-          if (cardElement) {
-            cardElement.remove();
+        // Actualización optimista de UI
+        if (action === "add") {
+          qtySpan.textContent = (currentQty + 1).toString();
+          collectionMap[cardId] = (collectionMap[cardId] || 0) + 1;
+
+          // Llamada API
+          fetch("/api/collection", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ cardId: cardId, quantity: 1 }),
+          }).catch((err) => {
+            console.error("Error adding card:", err);
+            // Revertir en caso de error
+            qtySpan.textContent = currentQty.toString();
+            collectionMap[cardId] = currentQty;
+            showToast("Error al actualizar la colección", "error");
+          });
+        } else if (action === "remove" && currentQty > 0) {
+          const newQty = currentQty - 1;
+          qtySpan.textContent = newQty.toString();
+          collectionMap[cardId] = Math.max(0, (collectionMap[cardId] || 0) - 1);
+
+          // Si el filtro "Solo cartas obtenidas" está activo y la cantidad llega a 0, eliminar la carta de la vista visualmente
+          if ((filtrosActuales as any).ownedOnly && newQty === 0) {
+            const cardElement = btn.closest(".group");
+            if (cardElement) {
+              cardElement.remove();
+            }
           }
+
+          // Llamada API
+          fetch("/api/collection", {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ cardId: cardId }),
+          }).catch((err) => {
+            console.error("Error removing card:", err);
+            // Revertir en caso de error
+            qtySpan.textContent = currentQty.toString();
+            collectionMap[cardId] = currentQty;
+            showToast("Error al actualizar la colección", "error");
+          });
         }
+      });
+    }
 
-        // Llamada API
-        fetch("/api/collection", {
-          method: "DELETE",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ cardId: cardId }),
-        }).catch((err) => {
-          console.error("Error removing card:", err);
-          // Revertir en caso de error
-          qtySpan.textContent = currentQty;
-          collectionMap[cardId] = currentQty;
-          showToast("Error al actualizar la colección", "error");
-        });
-      }
-    });
-
+    // Modal de Importación
     const btnCancelImport = document.getElementById("btn-cancel-import");
     const btnConfirmImport = document.getElementById("btn-confirm-import");
-    const btnImport = document.getElementById("btn-import");
-    const hiddenFileInput = document.getElementById("hidden-csv-input");
+    const hiddenFileInput = document.getElementById(
+      "hidden-csv-input",
+    ) as HTMLInputElement;
     const importModal = document.getElementById("import-modal");
     const selectedFileName = document.getElementById("selected-file-name");
 
-    hiddenFileInput.addEventListener("change", (e) => {
-      const file = e.target.files[0];
-      if (file) {
-        selectedFileName.textContent = file.name;
-        importModal.classList.remove("hidden");
-        importModal.classList.add("flex");
-      }
-    });
-
-    const closeModal = () => {
-      importModal.classList.add("hidden");
-      importModal.classList.remove("flex");
-      hiddenFileInput.value = ""; // Clear input to allow re-selecting same file
-      selectedFileName.textContent = "";
-    };
-
-    btnCancelImport.addEventListener("click", closeModal);
-    importModal.addEventListener("click", (e) => {
-      if (e.target === importModal) closeModal();
-    });
-
-    btnConfirmImport.addEventListener("click", async () => {
-      const file = hiddenFileInput.files[0];
-      if (!file) {
-        alert("No se ha seleccionado ningún archivo.");
-        return;
-      }
-
-      const formData = new FormData();
-      formData.append("file", file);
-
-      const originalText = btnConfirmImport.textContent;
-      btnConfirmImport.textContent = "Importando...";
-      btnConfirmImport.disabled = true;
-
-      try {
-        const res = await fetch("/api/collection/import", {
-          method: "POST",
-          body: formData,
-        });
-
-        if (res.ok) {
-          alert("Importación exitosa!");
-          closeModal();
-          // Recargar para mostrar nuevas cantidades
-          window.location.reload();
-        } else {
-          const err = await res.json();
-          alert(`Error: ${err.error || "Falló la importación"}`);
+    if (
+      hiddenFileInput &&
+      importModal &&
+      selectedFileName &&
+      btnCancelImport &&
+      btnConfirmImport
+    ) {
+      hiddenFileInput.addEventListener("change", (e) => {
+        const file = (e.target as HTMLInputElement).files?.[0];
+        if (file) {
+          selectedFileName.textContent = file.name;
+          importModal.classList.remove("hidden");
+          importModal.classList.add("flex");
         }
-      } catch (error) {
-        console.error("Error importing:", error);
-        alert("Error al importar.");
-      } finally {
-        btnConfirmImport.textContent = originalText;
-        btnConfirmImport.disabled = false;
-      }
-    });
+      });
+
+      const closeModal = () => {
+        importModal.classList.add("hidden");
+        importModal.classList.remove("flex");
+        hiddenFileInput.value = ""; // Limpiar input para permitir reseleccionar el mismo archivo
+        selectedFileName.textContent = "";
+      };
+
+      btnCancelImport.addEventListener("click", closeModal);
+      importModal.addEventListener("click", (e) => {
+        if (e.target === importModal) closeModal();
+      });
+
+      btnConfirmImport.addEventListener("click", async () => {
+        const file = hiddenFileInput.files?.[0];
+        if (!file) {
+          alert("No se ha seleccionado ningún archivo.");
+          return;
+        }
+
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const originalText = btnConfirmImport.textContent;
+        btnConfirmImport.textContent = "Importando...";
+        (btnConfirmImport as HTMLButtonElement).disabled = true;
+
+        try {
+          const res = await fetch("/api/collection/import", {
+            method: "POST",
+            body: formData,
+          });
+
+          if (res.ok) {
+            alert("Importación exitosa!");
+            closeModal();
+            // Recargar para mostrar nuevas cantidades
+            window.location.reload();
+          } else {
+            const err = await res.json();
+            alert(`Error: ${err.error || "Falló la importación"}`);
+          }
+        } catch (error) {
+          console.error("Error importing:", error);
+          alert("Error al importar.");
+        } finally {
+          btnConfirmImport.textContent = originalText;
+          (btnConfirmImport as HTMLButtonElement).disabled = false;
+        }
+      });
+    }
   </script>
 </MainLayout>
