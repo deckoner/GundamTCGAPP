@@ -34,7 +34,9 @@ function isLoginPage(path: string): boolean {
 export const onRequest: MiddlewareHandler = async (context, next) => {
   const { request, cookies, redirect } = context;
   const currentPath = new URL(request.url).pathname;
-  const token = cookies.get("session")?.value;
+  // En páginas prerenderizadas (SSG) no hay headers de petición disponibles,
+  // así que evitamos leer las cookies para no generar warning en el build.
+  const token = context.isPrerendered ? undefined : cookies.get("session")?.value;
 
   let user = null;
 
