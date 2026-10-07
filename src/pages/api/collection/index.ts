@@ -16,15 +16,15 @@ export const GET: APIRoute = async ({ request, locals }) => {
   const collection = await prisma.user_collections.findMany({
     where: { user_id: user.id },
     include: {
-      cards: mode !== "map", // Solo incluir datos de cartas si no estamos en modo mapa
+      card_variants: { include: { cards: true, sets: true } },
     },
   });
 
-  // Modo mapa: devuelve objeto simple { card_id: quantity }
+  // Modo mapa: devuelve objeto simple { variant_id: quantity }
   if (mode === "map") {
     const map: Record<number, number> = {};
     collection.forEach((item) => {
-      map[item.card_id] = item.quantity || 0;
+      map[item.variant_id] = item.quantity || 0;
     });
     return new Response(JSON.stringify(map), {
       status: 200,
@@ -32,7 +32,17 @@ export const GET: APIRoute = async ({ request, locals }) => {
     });
   }
 
-  return new Response(JSON.stringify(collection), {
+  // Conservar el formato antiguo de respuesta (fila con sus datos de carta)
+  const filas = collection.map((item) => ({
+    user_id: item.user_id,
+    variant_id: item.variant_id,
+    quantity: item.quantity,
+    card_id: item.card_variants?.card_id ?? 0,
+    cards: item.card_variants?.cards ?? null,
+    variant: item.card_variants ?? null,
+  }));
+
+  return new Response(JSON.stringify(filas), {
     status: 200,
     headers: { "Content-Type": "application/json" },
   });
@@ -48,22 +58,26 @@ export const POST: APIRoute = async ({ request, locals }) => {
   }
 
   const body = await request.json();
-  const { cardId, quantity = 1 } = body;
+  const { variantId, cardId, quantity = 1 } = body;
+  const variant = variantId ?? cardId;
 
-  if (!cardId) {
-    console.error("Collection POST Error: Falta cardId", body);
-    return new Response(JSON.stringify({ error: "ID de carta es requerido" }), {
-      status: 400,
-    });
+  if (!variant) {
+    console.error("Collection POST Error: Falta variantId", body);
+    return new Response(
+      JSON.stringify({ error: "ID de variante es requerido" }),
+      {
+        status: 400,
+      },
+    );
   }
 
   try {
-    // Verificar si la carta ya existe en la colección
+    // Verificar si la variante ya existe en la colección
     const existingEntry = await prisma.user_collections.findUnique({
       where: {
-        user_id_card_id: {
+        user_id_variant_id: {
           user_id: user.id,
-          card_id: parseInt(cardId),
+          variant_id: parseInt(variant),
         },
       },
     });
@@ -73,9 +87,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
       // Actualizar cantidad
       result = await prisma.user_collections.update({
         where: {
-          user_id_card_id: {
+          user_id_variant_id: {
             user_id: user.id,
-            card_id: parseInt(cardId),
+            variant_id: parseInt(variant),
           },
         },
         data: {
@@ -87,7 +101,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       result = await prisma.user_collections.create({
         data: {
           user_id: user.id,
-          card_id: parseInt(cardId),
+          variant_id: parseInt(variant),
           quantity: quantity,
         },
       });
@@ -116,27 +130,31 @@ export const DELETE: APIRoute = async ({ request, locals }) => {
   }
 
   const body = await request.json();
-  const { cardId, removeAll = false } = body;
+  const { variantId, cardId, removeAll = false } = body;
+  const variant = variantId ?? cardId;
 
-  if (!cardId) {
-    return new Response(JSON.stringify({ error: "ID de carta requerido" }), {
+  if (!variant) {
+    return new Response(JSON.stringify({ error: "ID de variante requerido" }), {
       status: 400,
     });
   }
 
   const existingEntry = await prisma.user_collections.findUnique({
     where: {
-      user_id_card_id: {
+      user_id_variant_id: {
         user_id: user.id,
-        card_id: parseInt(cardId),
+        variant_id: parseInt(variant),
       },
     },
   });
 
   if (!existingEntry) {
-    return new Response(JSON.stringify({ error: "Carta no encontrada en colección" }), {
-      status: 404,
-    });
+    return new Response(
+      JSON.stringify({ error: "Carta no encontrada en colección" }),
+      {
+        status: 404,
+      },
+    );
   }
 
   let result;
@@ -144,9 +162,9 @@ export const DELETE: APIRoute = async ({ request, locals }) => {
   if (removeAll || (existingEntry.quantity || 0) <= 1) {
     result = await prisma.user_collections.delete({
       where: {
-        user_id_card_id: {
+        user_id_variant_id: {
           user_id: user.id,
-          card_id: parseInt(cardId),
+          variant_id: parseInt(variant),
         },
       },
     });
@@ -154,9 +172,9 @@ export const DELETE: APIRoute = async ({ request, locals }) => {
     // Decrementar cantidad
     result = await prisma.user_collections.update({
       where: {
-        user_id_card_id: {
+        user_id_variant_id: {
           user_id: user.id,
-          card_id: parseInt(cardId),
+          variant_id: parseInt(variant),
         },
       },
       data: {

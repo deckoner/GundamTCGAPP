@@ -36,8 +36,8 @@ export function showToast(message: string, type: ToastType = "info"): void {
       type === "error"
         ? "bg-red-900/90 border-red-500/50 text-white"
         : type === "success"
-        ? "bg-green-900/90 border-green-500/50 text-white"
-        : "bg-slate-900/90 border-slate-500/50 text-white"
+          ? "bg-green-900/90 border-green-500/50 text-white"
+          : "bg-slate-900/90 border-slate-500/50 text-white"
     }
   `;
 

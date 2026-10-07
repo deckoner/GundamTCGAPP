@@ -2,11 +2,7 @@ import type { MiddlewareHandler } from "astro";
 import jwt from "jsonwebtoken";
 
 // Rutas públicas que no requieren autenticación
-const PUBLIC_ROUTES = [
-  "/login",
-  "/api/login",
-  "/api/cron",
-];
+const PUBLIC_ROUTES = ["/login", "/api/login", "/api/cron"];
 
 /**
  * Verifica si una ruta es pública.
@@ -36,7 +32,9 @@ export const onRequest: MiddlewareHandler = async (context, next) => {
   const currentPath = new URL(request.url).pathname;
   // En páginas prerenderizadas (SSG) no hay headers de petición disponibles,
   // así que evitamos leer las cookies para no generar warning en el build.
-  const token = context.isPrerendered ? undefined : cookies.get("session")?.value;
+  const token = context.isPrerendered
+    ? undefined
+    : cookies.get("session")?.value;
 
   let user = null;
 

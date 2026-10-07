@@ -9,33 +9,39 @@ test.describe("Gestión de Colección", () => {
     await page.click('button[type="submit"]');
 
     // Esperar navegación a la colección o forzarla si redirige al home
-    await page.waitForURL(/.*(\/collection|\/cartas|\/decks)/, { timeout: 10000 }).catch(() => {});
+    await page
+      .waitForURL(/.*(\/collection|\/cartas|\/decks)/, { timeout: 10000 })
+      .catch(() => {});
     await page.goto("/collection");
   });
 
   test("debería mostrar cartas en la colección", async ({ page }) => {
     // Esperar a que carguen las cartas
-    await expect(page.locator("#cartas-container")).toBeVisible({ timeout: 10000 });
+    await expect(page.locator("#cartas-container")).toBeVisible({
+      timeout: 10000,
+    });
   });
 
   test("debería alternar el filtro de arte alternativo", async ({ page }) => {
     const checkbox = page.locator("#filtro-alt-art");
-    const label = page.locator("label").filter({ hasText: "Mostrar arte alternativo" });
+    const label = page
+      .locator("label")
+      .filter({ hasText: "Mostrar arte alternativo" });
     const initialChecked = await checkbox.isChecked();
-    
+
     await label.click();
     if (initialChecked) {
-        await expect(checkbox).not.toBeChecked();
+      await expect(checkbox).not.toBeChecked();
     } else {
-        await expect(checkbox).toBeChecked();
+      await expect(checkbox).toBeChecked();
     }
-    
+
     // Alternar de nuevo
     await label.click();
     if (initialChecked) {
-        await expect(checkbox).toBeChecked();
+      await expect(checkbox).toBeChecked();
     } else {
-        await expect(checkbox).not.toBeChecked();
+      await expect(checkbox).not.toBeChecked();
     }
   });
 

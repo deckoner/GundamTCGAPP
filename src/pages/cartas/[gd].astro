@@ -4,69 +4,74 @@ export const prerender = true;
 import MainLayout from "../../layouts/MainLayout.astro";
 import prisma from "../../utils/prismaClient";
 
-// Generar rutas estáticas para todas las cartas principales (no alternas)
-// Esto permite SEO optimo y carga instantánea
+// Generar rutas estáticas para todas las cartas (una ruta por número GD)
+// Esto permite SEO optimo y carga instantanea
 export async function getStaticPaths() {
-  // Obtener todas las cartas base
   const cartas = await prisma.cards.findMany({
-    where: { alt_art: false },
     select: {
       gd: true,
       name: true,
-      rarity: true,
       level: true,
       cost: true,
       text_card: true,
       ap: true,
       hp: true,
-      img: true,
-      anime: { select: { anime: true } },
-      belongs_gd: { select: { belongs_gd: true, id: true } },
-      link: { select: { link: true } },
+      traits: true,
+      links: true,
+      animes: { select: { anime: true } },
       card_colors: { select: { color: { select: { color: true } } } },
       card_types: { select: { type: { select: { type: true } } } },
       card_tags: { select: { tag: { select: { tag: true } } } },
-      card_traits: { select: { trait: { select: { trait: true } } } },
+      card_variants: {
+        select: {
+          id: true,
+          img: true,
+          alt_art: true,
+          rarity: true,
+          sets: { select: { name: true, full_name: true, code: true } },
+        },
+        orderBy: { id: "asc" },
+      },
     },
-  });
-
-  // Obtener cartas de arte alternativo para asociarlas
-  const altArts = await prisma.cards.findMany({
-    where: { alt_art: true },
-    select: {
-      gd: true,
-      img: true,
-      belongs_gd_id: true,
-    },
+    orderBy: { id: "asc" },
   });
 
   // Desconexión de Prisma tras la compilación
   await prisma.$disconnect();
 
-  const excludedGDIds = [15, 35, 42];
-
-  // Mapear cartas base y buscar sus versiones alternas
-  const cartasConAlt = cartas.map((carta) => {
-    const prefix = carta.img ?? "";
-    const altImgs = altArts
-      .filter((alt) => alt.img && prefix && alt.img.startsWith(prefix))
-      .map((alt) => alt.img!)
+  // Cada carta se muestra una sola vez, con su variante principal y el
+  // resto de variantes como artes alternativos
+  return cartas.map((carta) => {
+    const variantes = carta.card_variants;
+    const principal = variantes.find((v) => !v.alt_art) ?? variantes[0];
+    const altImgs = variantes
+      .filter((v) => v.id !== principal?.id)
+      .map((v) => v.img)
       .filter(Boolean);
 
+    const { card_variants: _variantes, ...resto } = carta;
+
     return {
-      ...carta,
-      alt_imgs: altImgs,
+      params: { gd: carta.gd },
+      props: {
+        carta: {
+          ...resto,
+          img: principal?.img ?? null,
+          rarity: principal?.rarity ?? null,
+          set_name: principal?.sets?.full_name ?? principal?.sets?.name ?? null,
+          alt_imgs: altImgs,
+        },
+      },
     };
   });
-
-  // Retornar params y props para cada página generada
-  return cartasConAlt.map((carta) => ({
-    params: { gd: carta.gd },
-    props: { carta },
-  }));
 }
 
 const { carta } = Astro.props;
+
+const traitsList = (carta.traits || "")
+  .split("/")
+  .map((t: string) => t.trim())
+  .filter(Boolean);
 ---
 
 <MainLayout title={carta.name}>
@@ -105,19 +110,19 @@ const { carta } = Astro.props;
           carta.card_colors?.length > 0 && (
             <p class="text-center sm:text-left">
               <strong>Color:</strong>{" "}
-              {carta.card_colors.map((c) => c.color.color).join(", ")}
+              {carta.card_colors.map((c: any) => c.color.color).join(", ")}
             </p>
           )
         }
 
         {
-          carta.card_traits?.length > 0 && (
+          traitsList.length > 0 && (
             <div>
               <strong>Traits:</strong>
               <div class="mt-1 flex flex-wrap justify-center gap-2 sm:justify-start">
-                {carta.card_traits.map((t) => (
+                {traitsList.map((t: string) => (
                   <span class="bg-accent/20 text-accent rounded-full px-3 py-1 text-xs font-semibold">
-                    {t.trait.trait}
+                    {t}
                   </span>
                 ))}
               </div>
@@ -171,18 +176,18 @@ const { carta } = Astro.props;
         </p>
         <p>
           {
-            carta.link?.link && (
+            carta.links && (
               <>
-                <strong>Link:</strong> {carta.link.link}
+                <strong>Link:</strong> {carta.links}
               </>
             )
           }
         </p>
         <p>
           {
-            carta.belongs_gd?.belongs_gd && (
+            carta.set_name && (
               <>
-                <strong>GD base:</strong> {carta.belongs_gd.belongs_gd}
+                <strong>Set:</strong> {carta.set_name}
               </>
             )
           }
@@ -192,7 +197,7 @@ const { carta } = Astro.props;
             carta.card_types?.length > 0 && (
               <>
                 <strong>Tipo:</strong>{" "}
-                {carta.card_types.map((t) => t.type.type).join(", ")}
+                {carta.card_types.map((t: any) => t.type.type).join(", ")}
               </>
             )
           }
@@ -203,7 +208,7 @@ const { carta } = Astro.props;
             <div>
               <strong>Tags:</strong>
               <div class="mt-1 flex flex-wrap justify-center gap-2 sm:justify-start">
-                {carta.card_tags.map((t) => (
+                {carta.card_tags.map((t: any) => (
                   <span class="bg-accent/20 text-accent rounded-full px-3 py-1 text-xs font-semibold">
                     {t.tag.tag}
                   </span>
@@ -239,7 +244,7 @@ const { carta } = Astro.props;
             Artes alternativas
           </h2>
           <div class="grid grid-cols-1 place-items-center gap-6 sm:grid-cols-2 md:grid-cols-3">
-            {carta.alt_imgs.map((img) => (
+            {carta.alt_imgs.map((img: string) => (
               <img
                 src={`https://img.deckoner.com/${img}.webp`}
                 alt={`Arte alternativo de ${carta.name}`}

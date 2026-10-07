@@ -4,20 +4,24 @@ test.describe("Funcionalidad de Filtros", () => {
   test.beforeEach(async ({ page }) => {
     // Iniciar sesión primero
     await page.goto("/login");
-    await page.fill('input[name="username"]', 'demo');
-    await page.fill('input[name="password"]', 'demodemo');
+    await page.fill('input[name="username"]', "demo");
+    await page.fill('input[name="password"]', "demodemo");
     await page.click('button[type="submit"]');
-    await page.waitForURL('**/cartas**', { timeout: 10000 }).catch(() => page.goto("/cartas")); 
-    
+    await page
+      .waitForURL("**/cartas**", { timeout: 10000 })
+      .catch(() => page.goto("/cartas"));
+
     // Reintentar ir a la página por si acaso hay problemas de carga inicial o si la redirección no ocurrió
     if (!page.url().includes("/cartas")) {
-        await page.goto("/cartas", { waitUntil: 'domcontentloaded' });
+      await page.goto("/cartas", { waitUntil: "domcontentloaded" });
     }
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState("networkidle");
   });
 
   test("debería mostrar la sección de filtros", async ({ page }) => {
-    await expect(page.locator("#filtros-container")).toBeVisible({ timeout: 10000 });
+    await expect(page.locator("#filtros-container")).toBeVisible({
+      timeout: 10000,
+    });
   });
 
   test("debería filtrar por nombre", async ({ page }) => {
@@ -31,7 +35,9 @@ test.describe("Funcionalidad de Filtros", () => {
 
   test("debería alternar el filtro de arte alternativo", async ({ page }) => {
     const checkbox = page.locator("#filtro-alt-art");
-    const label = page.locator("label").filter({ hasText: "Mostrar arte alternativo" });
+    const label = page
+      .locator("label")
+      .filter({ hasText: "Mostrar arte alternativo" });
 
     // Asegurar estado inicial
     await expect(checkbox).not.toBeChecked();
@@ -47,18 +53,18 @@ test.describe("Funcionalidad de Filtros", () => {
 
   test("debería filtrar por tipo", async ({ page }) => {
     const select = page.locator("#filtro-tipo");
-    
+
     // Comprobar si tenemos opciones
-    const options = await select.locator('option').count();
+    const options = await select.locator("option").count();
     expect(options).toBeGreaterThan(0);
 
     // Solo intentar seleccionar si hay una segunda opción
     if (options > 1) {
-        await select.selectOption({ index: 1 });
-        const value = await select.inputValue();
-        expect(value).not.toBe("");
+      await select.selectOption({ index: 1 });
+      const value = await select.inputValue();
+      expect(value).not.toBe("");
     } else {
-        console.log("Saltando test de selección ya que no hay tipos disponibles");
+      console.log("Saltando test de selección ya que no hay tipos disponibles");
     }
   });
 });

@@ -504,10 +504,7 @@ if (!user) {
       };
 
       // Parsear y normalizar cartas
-      const cards = deck.deck_cards.map((dc: any) => ({
-        ...dc.cards,
-        quantity: dc.quantity,
-      }));
+      const cards = deck.deck_cards;
       const units = cards.filter(
         (c: any) => c.cost !== null && c.level !== null,
       );
@@ -611,10 +608,7 @@ if (!user) {
       previewResourceList.innerHTML = "";
 
       // Parsear
-      const allCards = deck.deck_cards.map((dc: any) => ({
-        ...dc.cards,
-        quantity: dc.quantity,
-      }));
+      const allCards = deck.deck_cards;
 
       // Separar Deck Principal y Recursos
       // Heurística: Las cartas con 'cost' definido son del deck principal

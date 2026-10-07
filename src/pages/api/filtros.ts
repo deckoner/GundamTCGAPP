@@ -14,31 +14,25 @@ interface Tag {
   id: number;
   tag: string | null;
 }
-interface Trait {
-  id: number;
-  trait: string | null;
-}
 interface Anime {
   id: number;
   anime: string | null;
 }
-interface BelongsGD {
+interface SetData {
   id: number;
-  belongs_gd: string | null;
-}
-interface Link {
-  id: number;
-  link: string | null;
+  code: string | null;
+  name: string | null;
+  full_name: string | null;
 }
 
 interface CachedData {
   colores: Color[];
   tipos: Type[];
   tags: Tag[];
-  traits: Trait[];
   animes: Anime[];
-  gd: BelongsGD[];
-  links: Link[];
+  sets: SetData[];
+  traits: string[];
+  links: string[];
   rarities: string[];
   costs: number[];
   levels: number[];
@@ -48,6 +42,22 @@ interface CachedData {
 let cached: CachedData | null = null;
 let cacheTimestamp = 0;
 const CACHE_TTL = 60 * 60 * 1000 * 6; // 6 horas
+
+/**
+ * Parte los valores de una columna de texto (separados por "/") y devuelve
+ * la lista única y ordenada de opciones para el filtro.
+ */
+function partirValores(valores: (string | null)[]): string[] {
+  const unicos = new Set<string>();
+  for (const valor of valores) {
+    if (!valor) continue;
+    for (const parte of valor.split("/")) {
+      const limpio = parte.trim();
+      if (limpio) unicos.add(limpio);
+    }
+  }
+  return Array.from(unicos).sort((a, b) => a.localeCompare(b));
+}
 
 /**
  * Obtiene los datos necesarios para popular los filtros.
@@ -62,24 +72,25 @@ export async function getFiltrosData() {
       colores,
       tipos,
       tags,
-      traits,
       animes,
-      gd,
-      links,
+      sets,
       rarities,
       costs,
       levels,
+      linksCrudos,
+      traitsCrudos,
     ] = await Promise.all([
       prisma.colors.findMany({ select: { id: true, color: true } }),
       prisma.types.findMany({ select: { id: true, type: true } }),
       prisma.tags.findMany({ select: { id: true, tag: true } }),
-      prisma.traits.findMany({ select: { id: true, trait: true } }),
       prisma.animes.findMany({ select: { id: true, anime: true } }),
-      prisma.belongs_gd.findMany({ select: { id: true, belongs_gd: true } }),
-      prisma.links.findMany({ select: { id: true, link: true } }),
-      
-      // Obtener valores únicos para selects
-      prisma.cards.findMany({
+      prisma.sets.findMany({
+        select: { id: true, code: true, name: true, full_name: true },
+        orderBy: { sort_order: "asc" },
+      }),
+
+      // Obtener valores únicos de rareza (viven en las variantes)
+      prisma.card_variants.findMany({
         select: { rarity: true },
         distinct: ["rarity"],
         where: { rarity: { not: null } },
@@ -96,16 +107,26 @@ export async function getFiltrosData() {
         where: { level: { not: null } },
         orderBy: { level: "asc" },
       }),
+
+      // Links y traits son columnas de texto en cards
+      prisma.cards.findMany({
+        select: { links: true },
+        where: { links: { not: null } },
+      }),
+      prisma.cards.findMany({
+        select: { traits: true },
+        where: { traits: { not: null } },
+      }),
     ]);
 
     cached = {
       colores,
       tipos,
       tags,
-      traits,
       animes,
-      gd,
-      links,
+      sets,
+      traits: partirValores(traitsCrudos.map((t) => t.traits)),
+      links: partirValores(linksCrudos.map((l) => l.links)),
       rarities: rarities.map((r) => r.rarity!).filter(Boolean),
       costs: costs.map((c) => c.cost!).filter((c) => c !== null),
       levels: levels.map((l) => l.level!).filter((l) => l !== null),

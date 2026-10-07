@@ -23,7 +23,7 @@ export const crearElemento = (
   tag: string,
   styles: Partial<CSSStyleDeclaration> = {},
   text: string = "",
-  onClick?: () => void
+  onClick?: () => void,
 ): HTMLElement => {
   const el = document.createElement(tag);
 

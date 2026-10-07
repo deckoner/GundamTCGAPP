@@ -11,7 +11,7 @@ export const PUT: APIRoute = async ({ request, cookies, locals }) => {
       status: 401,
     });
   }
-  
+
   // Protección para la cuenta demo
   if (user.username === "demo") {
     return new Response(
@@ -106,8 +106,11 @@ export const PUT: APIRoute = async ({ request, cookies, locals }) => {
     );
   } catch (error) {
     console.error("Error al actualizar perfil:", error);
-    return new Response(JSON.stringify({ error: "Error interno del servidor" }), {
-      status: 500,
-    });
+    return new Response(
+      JSON.stringify({ error: "Error interno del servidor" }),
+      {
+        status: 500,
+      },
+    );
   }
 };

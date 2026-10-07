@@ -15,9 +15,12 @@ export const GET: APIRoute = async ({ request }) => {
     });
 
     if (!demoUser) {
-      return new Response(JSON.stringify({ message: "Usuario demo no encontrado" }), {
-        status: 404,
-      });
+      return new Response(
+        JSON.stringify({ message: "Usuario demo no encontrado" }),
+        {
+          status: 404,
+        },
+      );
     }
 
     // Usar transacción para borrado atómico
@@ -33,7 +36,9 @@ export const GET: APIRoute = async ({ request }) => {
     ]);
 
     return new Response(
-      JSON.stringify({ message: "Datos de usuario demo reiniciados correctamente" }),
+      JSON.stringify({
+        message: "Datos de usuario demo reiniciados correctamente",
+      }),
       {
         status: 200,
         headers: { "Content-Type": "application/json" },
@@ -41,9 +46,12 @@ export const GET: APIRoute = async ({ request }) => {
     );
   } catch (error) {
     console.error("Error reseteando usuario demo:", error);
-    return new Response(JSON.stringify({ error: "Error Interno del Servidor" }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({ error: "Error Interno del Servidor" }),
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      },
+    );
   }
 };

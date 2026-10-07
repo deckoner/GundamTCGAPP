@@ -2,6 +2,10 @@ export const prerender = false;
 
 import prisma from "../../../utils/prismaClient";
 import { EXCLUDED_DECK_TYPES } from "../../../constants/deckRules";
+import {
+  deckCardsInclude,
+  serializarDeckCards,
+} from "../../../utils/deckCards";
 
 /**
  * Obtener todos los decks del usuario actual
@@ -18,9 +22,7 @@ export async function GET({ locals }: { locals: App.Locals }) {
       where: { user_id: locals.user.id },
       include: {
         deck_cards: {
-          include: {
-            cards: true,
-          },
+          include: deckCardsInclude,
         },
       },
     });
@@ -39,10 +41,7 @@ export async function GET({ locals }: { locals: App.Locals }) {
     const decksWithStats = decks.map((deck) => {
       const totalCards = deck.deck_cards
         .filter((dc) => {
-          const cardTypeIds = (dc.cards.type_ids || "")
-            .split(",")
-            .filter(Boolean)
-            .map(Number);
+          const cardTypeIds = dc.cards.card_types.map((t) => t.type_id);
           // Verificar si alguno de los tipos de la carta es especial
           // Estos no cuentan para el límite principal de 50 cartas
           const isSpecial = cardTypeIds.some((tid) =>
@@ -53,6 +52,7 @@ export async function GET({ locals }: { locals: App.Locals }) {
         .reduce((sum, dc) => sum + (dc.quantity || 0), 0);
       return {
         ...deck,
+        deck_cards: serializarDeckCards(deck.deck_cards),
         totalCards,
       };
     });

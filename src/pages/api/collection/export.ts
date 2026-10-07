@@ -14,9 +14,10 @@ export const GET: APIRoute = async ({ request, locals }) => {
   const collection = await prisma.user_collections.findMany({
     where: { user_id: user.id },
     include: {
-      cards: {
+      card_variants: {
         include: {
-          belongs_gd: true,
+          cards: true,
+          sets: true,
         },
       },
     },
@@ -27,11 +28,12 @@ export const GET: APIRoute = async ({ request, locals }) => {
 
   // Poblar filas
   collection.forEach((item) => {
+    const variante = item.card_variants;
     csvRows.push([
-      item.cards.gd || "",
-      `"${(item.cards.name || "").replace(/"/g, '""')}"`,
-      item.cards.rarity || "",
-      item.cards.belongs_gd?.belongs_gd || "",
+      variante?.cards.gd || "",
+      `"${(variante?.cards.name || "").replace(/"/g, '""')}"`,
+      variante?.rarity || "",
+      variante?.sets.full_name || "",
       (item.quantity || 0).toString(),
     ]);
   });

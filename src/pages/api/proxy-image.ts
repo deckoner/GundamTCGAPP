@@ -16,9 +16,12 @@ export const GET: APIRoute = async ({ request }) => {
     const response = await fetch(imageUrl);
 
     if (!response.ok) {
-      return new Response(`Error obteniendo la imagen: ${response.statusText}`, {
-        status: response.status,
-      });
+      return new Response(
+        `Error obteniendo la imagen: ${response.statusText}`,
+        {
+          status: response.status,
+        },
+      );
     }
 
     const blob = await response.blob();

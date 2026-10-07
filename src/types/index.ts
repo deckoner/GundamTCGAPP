@@ -8,9 +8,11 @@ export interface Card {
   quantity: number; // Cantidad disponible o en deck
   type_ids?: string; // IDs de tipos asociados
   color_ids?: string; // IDs de colores asociados
-  gd?: string; // ID en la edición
-  alt_art?: boolean; // Si es arte alternativo
-  belongs_gd_id?: number; // ID de la edición a la que pertenece
+  gd?: string; // ID de la carta
+  alt_art?: boolean; // Si la variante mostrada es arte alternativo
+  variant_id?: number; // ID de la variante (card_variants)
+  rarity?: string; // Rareza de la variante mostrada
+  set_id?: number; // ID del set de la variante mostrada
 }
 
 // Estructura básica de un Deck
@@ -40,13 +42,13 @@ export interface FetchCartasParams {
   tipo?: number | null;
   anime?: number | null;
   gd?: number | null;
-  link?: number | null;
+  link?: string | null;
   rarity?: string | null;
   cost?: number | null;
   level?: number | null;
   colores?: Set<number>;
   tags?: Set<number>;
-  traits?: Set<number>;
+  traits?: Set<string>;
   altArt?: boolean;
   ownedOnly?: boolean;
   userId?: number;

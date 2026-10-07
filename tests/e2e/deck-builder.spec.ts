@@ -9,7 +9,9 @@ test.describe("Constructor de Mazos", () => {
     await page.click('button[type="submit"]');
 
     // Esperar navegación y redirigir a decks
-    await page.waitForURL(/.*(\/collection|\/cartas|\/decks)/, { timeout: 10000 }).catch(() => {});
+    await page
+      .waitForURL(/.*(\/collection|\/cartas|\/decks)/, { timeout: 10000 })
+      .catch(() => {});
     await page.goto("/decks");
   });
 

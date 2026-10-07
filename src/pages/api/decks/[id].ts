@@ -1,6 +1,10 @@
 export const prerender = false;
 
 import prisma from "../../../utils/prismaClient";
+import {
+  deckCardsInclude,
+  serializarDeckCards,
+} from "../../../utils/deckCards";
 
 /**
  * Obtener un deck específico
@@ -31,9 +35,7 @@ export async function GET({
       where: { id: deckId },
       include: {
         deck_cards: {
-          include: {
-            cards: true,
-          },
+          include: deckCardsInclude,
         },
       },
     });
@@ -51,7 +53,12 @@ export async function GET({
       });
     }
 
-    return new Response(JSON.stringify(deck), {
+    const response = {
+      ...deck,
+      deck_cards: serializarDeckCards(deck.deck_cards),
+    };
+
+    return new Response(JSON.stringify(response), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
@@ -133,22 +140,31 @@ export async function PUT({
               deck_id: deckId,
               card_id: c.card_id,
               quantity: c.quantity,
+              zone: c.zone || "main",
+              preferred_variant_id: c.variant_id ?? null,
             })),
           });
         }
       }
 
       // Devolver deck actualizado
-      return tx.decks.findUnique({
+      const deck = await tx.decks.findUnique({
         where: { id: deckId },
         include: {
           deck_cards: {
-            include: {
-              cards: true,
-            },
+            include: deckCardsInclude,
           },
         },
       });
+
+      if (!deck) {
+        throw new Error("Deck no encontrado tras la actualización");
+      }
+
+      return {
+        ...deck,
+        deck_cards: serializarDeckCards(deck.deck_cards),
+      };
     });
 
     return new Response(JSON.stringify(updatedDeck), {

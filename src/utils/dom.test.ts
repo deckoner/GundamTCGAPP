@@ -11,10 +11,10 @@ describe("utils/dom", () => {
 
       expect(fn).not.toHaveBeenCalled();
 
-      await new Promise(resolve => setTimeout(resolve, 50));
+      await new Promise((resolve) => setTimeout(resolve, 50));
       expect(fn).not.toHaveBeenCalled();
 
-      await new Promise(resolve => setTimeout(resolve, 60));
+      await new Promise((resolve) => setTimeout(resolve, 60));
       expect(fn).toHaveBeenCalledTimes(1);
     });
 
@@ -26,7 +26,7 @@ describe("utils/dom", () => {
       debouncedFn();
       debouncedFn();
 
-      await new Promise(resolve => setTimeout(resolve, 150));
+      await new Promise((resolve) => setTimeout(resolve, 150));
 
       expect(fn).toHaveBeenCalledTimes(1);
     });
@@ -42,7 +42,7 @@ describe("utils/dom", () => {
     it("debería aplicar estilos", () => {
       const el = crearElemento("span", {
         color: "red",
-        fontSize: "20px"
+        fontSize: "20px",
       });
 
       expect(el.style.color).toBe("red");

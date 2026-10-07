@@ -25,7 +25,7 @@ const collectionStats = await prisma.user_collections.aggregate({
 const altArtStats = await prisma.user_collections.findMany({
   where: {
     user_id: user.id,
-    cards: {
+    card_variants: {
       alt_art: true,
     },
   },

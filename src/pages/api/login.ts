@@ -26,11 +26,17 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
     }
 
     // Rate Limiting
-    const ip = request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || "unknown";
+    const ip =
+      request.headers.get("x-forwarded-for") ||
+      request.headers.get("x-real-ip") ||
+      "unknown";
     if (global.loginAttempts && global.loginAttempts[ip] > 5) {
-       return redirect("/login?error=" + encodeURIComponent("Demasiados intentos. Intenta más tarde."));
+      return redirect(
+        "/login?error=" +
+          encodeURIComponent("Demasiados intentos. Intenta más tarde."),
+      );
     }
-    
+
     // Inicializar contador si no existe
     if (!global.loginAttempts) global.loginAttempts = {};
 
@@ -43,18 +49,19 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
     // Comparación segura (siempre se ejecuta para mitigar ataques de tiempo)
     // Hash válido pre-calculado para 'invalid'
     const hashToCompare =
-      user?.password_hash ?? "$2a$10$X7.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1"; 
+      user?.password_hash ??
+      "$2a$10$X7.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1";
     const valid = await bcrypt.compare(password, hashToCompare);
 
     if (!valid || !user) {
       // Incrementar intentos fallidos
       global.loginAttempts[ip] = (global.loginAttempts[ip] || 0) + 1;
-      
+
       // Resetear intentos después de 1 minuto
       setTimeout(() => {
-          if (global.loginAttempts && global.loginAttempts[ip]) {
-              global.loginAttempts[ip] = Math.max(0, global.loginAttempts[ip] - 1);
-          }
+        if (global.loginAttempts && global.loginAttempts[ip]) {
+          global.loginAttempts[ip] = Math.max(0, global.loginAttempts[ip] - 1);
+        }
       }, 60000);
 
       return redirect(
@@ -62,7 +69,7 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
           encodeURIComponent("Usuario o contraseña incorrecta."),
       );
     }
-    
+
     // Limpiar intentos al loguearse correctamente
     if (global.loginAttempts?.[ip]) delete global.loginAttempts[ip];
 

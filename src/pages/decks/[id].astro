@@ -4,6 +4,7 @@ import Filtros from "../../components/Filtros.astro";
 import DeckStats from "../../components/deck/DeckStats.astro";
 import Icon from "../../components/Icon.astro";
 import prisma from "../../utils/prismaClient";
+import { deckCardsInclude, serializarDeckCards } from "../../utils/deckCards";
 
 const { id } = Astro.params;
 const user = Astro.locals.user;
@@ -21,9 +22,7 @@ const deck = await prisma.decks.findUnique({
   where: { id: deckId },
   include: {
     deck_cards: {
-      include: {
-        cards: true,
-      },
+      include: deckCardsInclude,
     },
   },
 });
@@ -44,10 +43,7 @@ const types = await prisma.types.findMany();
 const initialDeckState = {
   id: deck.id,
   name: deck.name,
-  cards: deck.deck_cards.map((dc) => ({
-    ...dc.cards,
-    quantity: dc.quantity,
-  })),
+  cards: serializarDeckCards(deck.deck_cards),
 };
 
 const metadata = {
@@ -173,7 +169,6 @@ const metadata = {
     import {
       EXCLUDED_DECK_TYPES,
       RESOURCE_CARD_TYPES,
-      BETA_EDITION_IDS,
       CARD_TYPE_ORDER,
       MAX_CARDS_IN_DECK,
       MAX_RESOURCE_DECK_SIZE,
@@ -275,15 +270,10 @@ const metadata = {
       const isMaxed = !isSpecial && count >= 4;
 
       const isAlt = card.alt_art === true;
-      const isBeta = BETA_EDITION_IDS.includes(card.belongs_gd_id ?? -1);
 
       let flagsHTML = "";
       if (isAlt) {
         flagsHTML += `<span class="absolute top-2 right-2 text-black bg-purple-500 text-white font-bold text-[10px] px-2 py-0.5 rounded z-10 shadow-lg">ALT</span>`;
-      }
-      if (isBeta) {
-        const betaTop = isAlt ? "top-8" : "top-2";
-        flagsHTML += `<span class="absolute ${betaTop} right-2 text-black font-bold text-[10px] px-2 py-0.5 rounded z-10 shadow-lg" style="background-color: var(--color-accent);">BETA</span>`;
       }
 
       div.innerHTML = `
@@ -444,8 +434,6 @@ const metadata = {
         const count = getDeckCount(card.id);
         const isSpecial = isSpecialCard(card);
         const isMaxed = !isSpecial && count >= 4;
-        const isAlt = card.alt_art === true;
-        const isBeta = BETA_EDITION_IDS.includes(card.belongs_gd_id ?? -1);
 
         // Actualizar clases de contenedor
         const img = div.querySelector("img");
@@ -777,6 +765,7 @@ const metadata = {
             cards: deck.cards.map((c) => ({
               card_id: c.id,
               quantity: c.quantity,
+              variant_id: c.variant_id ?? null,
             })),
           };
 

@@ -12,9 +12,6 @@ export const EXCLUDED_DECK_TYPES = [
 // Tipos de cartas que corresponden a recursos
 export const RESOURCE_CARD_TYPES = ["RESOURCE", "EX RESOURCE"];
 
-// IDs de las ediciones Beta del juego
-export const BETA_EDITION_IDS = [15, 35, 42];
-
 // Orden preferido para mostrar los tipos de cartas en la interfaz
 export const CARD_TYPE_ORDER = [
   "Unit",

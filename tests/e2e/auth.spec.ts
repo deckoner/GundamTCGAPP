@@ -8,7 +8,9 @@ test.describe("Autenticación", () => {
     await expect(page).toHaveURL(/.*\/login/);
   });
 
-  test("debería permitir el login con credenciales válidas", async ({ page }) => {
+  test("debería permitir el login con credenciales válidas", async ({
+    page,
+  }) => {
     await page.goto("/login");
 
     // Llenar formulario de login
@@ -22,6 +24,6 @@ test.describe("Autenticación", () => {
     await expect(page).not.toHaveURL(/.*\/login/);
 
     // Verificamos si estamso en home si hay un h1
-    await expect(page.locator('h1')).toBeVisible();
+    await expect(page.locator("h1")).toBeVisible();
   });
 });
