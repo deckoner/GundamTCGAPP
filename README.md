@@ -239,9 +239,3 @@ Users ──┬── Decks ──── DeckCards ──── Cards
 ```
 
 </details>
-
-<div align="center">
-
-**[⬆ Volver arriba](#-gundamtcg)**
-
-</div>
