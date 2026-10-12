@@ -1,5 +1,6 @@
 ---
 const { title = "GundamTCG", maxWidth = "max-w-6xl" } = Astro.props;
+const showAnalytics = Boolean(process.env.VERCEL);
 import "../styles/global.css";
 import Analytics from "@vercel/analytics/astro";
 import Navbar from "../components/Navbar.astro";
@@ -35,6 +36,6 @@ import Footer from "../components/Footer.astro";
       class="pointer-events-none fixed right-0 bottom-4 z-50 flex flex-col items-end gap-2 px-4 sm:right-4 sm:bottom-4"
     >
     </div>
-    <Analytics />
+    {showAnalytics && <Analytics />}
   </body>
 </html>
